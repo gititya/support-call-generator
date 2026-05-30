@@ -1,0 +1,124 @@
+from __future__ import annotations
+
+import csv
+from datetime import datetime, timezone
+import json
+import shutil
+from pathlib import Path
+
+from support_call_generator.storage import CASES_DIR, load_case, list_cases
+
+
+EXPORT_DIR = Path("exports")
+
+
+def export_reviewed(
+    cases_dir: Path = CASES_DIR,
+    export_dir: Path = EXPORT_DIR,
+    status: str = "accepted",
+) -> dict[str, int]:
+    transcript_dir = export_dir / "transcripts"
+    truth_dir = export_dir / "ground_truth"
+    if transcript_dir.exists():
+        shutil.rmtree(transcript_dir)
+    if truth_dir.exists():
+        shutil.rmtree(truth_dir)
+    transcript_dir.mkdir(parents=True, exist_ok=True)
+    truth_dir.mkdir(parents=True, exist_ok=True)
+
+    rows: list[dict[str, str]] = []
+    manifest_cases: list[dict[str, str]] = []
+    exported = 0
+
+    for summary in list_cases(cases_dir):
+        if status != "all" and summary["status"] != status:
+            continue
+
+        case = load_case(summary["case_id"], cases_dir)
+        case_id = case["case_id"]
+        source_dir = cases_dir / case_id
+
+        shutil.copyfile(source_dir / "transcript.json", transcript_dir / f"{case_id}.json")
+        shutil.copyfile(source_dir / "transcript.md", transcript_dir / f"{case_id}.md")
+        shutil.copyfile(source_dir / "ground_truth.json", truth_dir / f"{case_id}.ground_truth.json")
+        shutil.copyfile(source_dir / "expected_timeline.json", truth_dir / f"{case_id}.expected_timeline.json")
+        leakage_path = source_dir / "leakage_report.json"
+        if leakage_path.exists():
+            shutil.copyfile(leakage_path, truth_dir / f"{case_id}.leakage_report.json")
+
+        spec = case["scenario_spec"]
+        review = case["review"]
+        rows.append(
+            {
+                "case_id": case_id,
+                "status": review["status"],
+                "scenario_type": spec["scenario_type"],
+                "customer_mood": spec["customer_persona"]["mood"],
+                "customer_clarity": spec["customer_persona"]["clarity"],
+                "customer_patience": spec["customer_persona"]["patience"],
+                "technical_skill": spec["customer_persona"]["technical_skill"],
+                "agent_quality": spec["agent_quality"],
+                "difficulty": case["ground_truth"].get("difficulty_metadata", {}).get("difficulty", ""),
+                "resolution_type": case["ground_truth"].get("resolution_type", ""),
+                "root_cause_category": case["ground_truth"].get("root_cause_category", ""),
+                "leakage_status": case["leakage_report"]["status"],
+                "escalation_risk": spec["escalation_risk"],
+                "model_name": review.get("model_name", ""),
+                "generation_mode": review.get("generation_mode", ""),
+                "notes": review.get("notes", ""),
+            }
+        )
+        manifest_cases.append(
+            {
+                "case_id": case_id,
+                "status": review["status"],
+                "scenario_type": spec["scenario_type"],
+                "difficulty": case["ground_truth"].get("difficulty_metadata", {}).get("difficulty", ""),
+                "resolution_type": case["ground_truth"].get("resolution_type", ""),
+                "leakage_status": case["leakage_report"]["status"],
+                "transcript_json": f"transcripts/{case_id}.json",
+                "transcript_markdown": f"transcripts/{case_id}.md",
+            }
+        )
+        exported += 1
+
+    _write_index(export_dir / "review_index.csv", rows)
+    _write_manifest(export_dir / "manifest.json", status, manifest_cases)
+    return {"exported": exported}
+
+
+def _write_index(path: Path, rows: list[dict[str, str]]) -> None:
+    fieldnames = [
+        "case_id",
+        "status",
+        "scenario_type",
+        "customer_mood",
+        "customer_clarity",
+        "customer_patience",
+        "technical_skill",
+        "agent_quality",
+        "difficulty",
+        "resolution_type",
+        "root_cause_category",
+        "leakage_status",
+        "escalation_risk",
+        "model_name",
+        "generation_mode",
+        "notes",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _write_manifest(path: Path, status: str, cases: list[dict[str, str]]) -> None:
+    manifest = {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "status_filter": status,
+        "case_count": len(cases),
+        "boundary": "Transcript-only manifest for copilot/main-app consumption. Hidden ground truth is intentionally excluded.",
+        "cases": cases,
+    }
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
