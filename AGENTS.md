@@ -68,6 +68,6 @@ rg -n "sk-ant-|AIza|ghp_|xoxb-|sk_live|sk_test|Bearer |AWS_SECRET|PRIVATE_KEY|da
 
 ## Keychain / API Use
 
-The Streamlit UI reads the OpenAI key from macOS Keychain service `OPENAI_API_KEY`.
+The Streamlit UI reads the OpenAI key from `OPENAI_API_KEY` in the environment, then macOS Keychain service `OpenAI:voice` under account `aditya`.
 
 Do not print API keys. Do not commit `.env` files. If the key is unavailable, generation should fail visibly rather than silently falling back to offline mode.

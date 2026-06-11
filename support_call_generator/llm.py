@@ -122,6 +122,7 @@ def generate_with_openai(spec: dict[str, Any], model: str | None = None) -> dict
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": build_generation_prompt(spec)},
         ],
+        text={"format": {"type": "json_object"}},
     )
 
     text = getattr(response, "output_text", None)

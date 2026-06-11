@@ -37,15 +37,16 @@ def openai_key_from_keychain() -> str | None:
     if os.getenv("OPENAI_API_KEY"):
         return os.getenv("OPENAI_API_KEY")
 
-    result = subprocess.run(
-        ["security", "find-generic-password", "-s", "OPENAI_API_KEY", "-w"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        return None
-    return result.stdout.strip()
+    for service in ("OpenAI:voice",):
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", "aditya", "-s", service, "-w"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    return None
 
 
 if "cases_dir" not in st.session_state:
@@ -68,7 +69,7 @@ if st.sidebar.button("Generate call", type="primary", use_container_width=True):
     scenario = generation_scenario if generation_scenario != "random" else random.choice(SCENARIO_TYPES)
     openai_key = openai_key_from_keychain()
     if not openai_key:
-        st.sidebar.error("OpenAI key unavailable. Expected Keychain service: OPENAI_API_KEY.")
+        st.sidebar.error("OpenAI key unavailable. Expected Keychain service: OpenAI:voice.")
     else:
         os.environ["OPENAI_API_KEY"] = openai_key
         with st.spinner("Generating LLM call..."):
