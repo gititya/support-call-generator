@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import tomllib
 
+import support_call_generator as scg
 from support_call_generator.exporter import export_reviewed
 from support_call_generator.generator import generate_call
 from support_call_generator.scenarios import SCENARIO_TYPES
@@ -96,3 +98,12 @@ def test_review_status_persists(tmp_path) -> None:
 
     summaries = list_cases(cases_dir)
     assert summaries[0]["status"] == "rejected"
+
+
+def test_package_public_api_and_console_script() -> None:
+    case = scg.generate_call(scenario_type="permissions_access", seed=123, use_llm=False)
+    assert case["case_id"]
+    assert "permissions_access" in scg.SCENARIO_TYPES
+
+    pyproject = tomllib.loads(open("pyproject.toml", encoding="utf-8").read())
+    assert pyproject["project"]["scripts"]["support-call-generator"] == "support_call_generator.cli:main"

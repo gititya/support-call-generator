@@ -15,6 +15,9 @@ anthropic = ["anthropic>=0.40.0"]
 ui = ["streamlit>=1.35.0"]
 dev = ["pytest>=8.0.0"]
 
+[project.scripts]
+support-call-generator = "support_call_generator.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["support_call_generator*"]
 
