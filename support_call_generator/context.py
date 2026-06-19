@@ -180,9 +180,69 @@ def _distribute_turn(index: int, total: int, start: int, end: int, rng: random.R
     return rng.randint(slot_start, max(slot_start, slot_end))
 
 
+_OPERATIONAL_PATTERNS = [
+    (["billing", "analyst", "group"], "group:billing_analyst"),
+    (["billing", "analyst", "role"], "role:billing_analyst"),
+    (["sso", "group"], "sso_group:membership"),
+    (["department", "change"], "dept_change:recent"),
+    (["department", "removed"], "sso_group:removed"),
+    (["app", "role", "access"], "app_role:works_for_others"),
+    (["manually", "invited", "access"], "manual_invite:works"),
+    (["migration", "completed"], "migration:completed"),
+    (["migration", "last", "night"], "migration:recent"),
+    (["custom", "legacy", "role"], "role_mapping:custom_legacy"),
+    (["fallback", "role", "mapping"], "role_mapping:fallback"),
+    (["newly", "created", "editable"], "new_records:editable"),
+    (["archived", "teams", "own"], "archived_teams:owns_records"),
+    (["csv", "export", "filtered"], "export_filter:archived_excluded"),
+    (["legacy", "team", "ids"], "legacy_teams:shared_ids"),
+    (["txt", "record", "added"], "dns:txt_wrong_subdomain"),
+    (["verification", "expects"], "dns:verification_target"),
+    (["staging", "guide"], "docs:staging_guide_copied"),
+    (["integration", "permission", "declined"], "oauth:permission_declined"),
+    (["write", "access"], "integration:write_scope_needed"),
+    (["admin", "role", "approve"], "admin:can_approve"),
+    (["admin", "mentions"], "admin:late_mention"),
+    (["logs", "show", "warning"], "logs:warning_dismissed"),
+    (["working", "example", "differs"], "comparison:config_differs"),
+    (["scim", "sync"], "scim:sync_delay"),
+    (["entitlement", "cache"], "cache:stale_entitlement"),
+    (["role", "conflict"], "role:conflict"),
+    (["role", "mapping", "rule"], "role_mapping:disabled"),
+    (["owner", "translation"], "migration:ownership_translation"),
+    (["duplicate", "merge"], "migration:duplicate_merge"),
+    (["environment", "mismatch"], "env:mismatch"),
+    (["inactive", "owner"], "owner:inactive_excluded"),
+    (["field", "mapping"], "migration:field_mapping_fallback"),
+    (["partial", "export"], "export:partial_scope"),
+    (["dns", "record"], "dns:wrong_host"),
+    (["oauth", "permission"], "oauth:declined"),
+    (["connector", "authorization"], "connector:auth_failure"),
+    (["provisioning", "timeout"], "provisioning:timeout"),
+    (["template", "dependency"], "template:dependency_failure"),
+    (["region", "mismatch"], "region:mismatch"),
+]
+
+
 def _fact_key(text: str) -> str:
-    words = text.lower().replace(",", "").replace(".", "").split()[:4]
-    return "evidence:" + "_".join(words)
+    lower = text.lower().replace(",", "").replace(".", "")
+    for keywords, label in _OPERATIONAL_PATTERNS:
+        if all(kw in lower for kw in keywords):
+            return label
+    words = lower.split()
+    nouns = [w for w in words if len(w) > 3 and w not in _STOP_WORDS]
+    if len(nouns) >= 2:
+        return f"{nouns[0]}:{nouns[1]}"
+    if nouns:
+        return f"evidence:{nouns[0]}"
+    return "evidence:" + "_".join(words[:3])
+
+
+_STOP_WORDS = {
+    "the", "that", "this", "with", "from", "have", "been", "were", "they",
+    "their", "about", "after", "before", "into", "also", "each", "which",
+    "does", "more", "than", "same", "some", "only", "still", "just",
+}
 
 
 def _infer_unknown(issue_path: list[str]) -> str:

@@ -128,7 +128,7 @@ def test_realtime_export_shape(tmp_path) -> None:
     assert fixture_path.exists()
 
     fixture = json.loads(fixture_path.read_text())
-    assert fixture["schema_version"] == "support_call_generator.realtime_support.v1"
+    assert "schema_version" not in fixture, "individual fixtures must not have schema_version"
     assert fixture["case_id"] == case["case_id"]
     assert fixture["scenario"] == "permissions_access"
     assert fixture["difficulty_profile"] == "hard"
@@ -138,6 +138,88 @@ def test_realtime_export_shape(tmp_path) -> None:
     assert fixture["final_cause"]
     assert fixture["resolution_type"]
     assert isinstance(fixture["intent_tags"], list)
+
+
+def test_realtime_export_context_events_translated(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="permissions_access", seed=456, use_llm=False, profile="hard")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "good", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    fixture_path = export_dir / "realtime_support" / f"{case['case_id']}.json"
+    fixture = json.loads(fixture_path.read_text())
+
+    for event in fixture["context_events"]:
+        assert "relevant" in event, "context event missing 'relevant' field"
+        assert "is_irrelevant" not in event, "context event should not have 'is_irrelevant'"
+        assert "next_check" in event, "context event missing 'next_check'"
+        assert isinstance(event["next_check"], str) and event["next_check"]
+
+    reveal_events = [e for e in fixture["context_events"] if e.get("reveals_final_cause")]
+    for event in reveal_events:
+        assert "final_cause" in event, "revealing event missing 'final_cause' string"
+        assert event["final_cause"], "final_cause should not be empty on revealing event"
+
+
+def test_realtime_export_expected_outcome(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="permissions_access", seed=456, use_llm=False, profile="hard")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    fixture_path = export_dir / "realtime_support" / f"{case['case_id']}.json"
+    fixture = json.loads(fixture_path.read_text())
+    assert "expected_outcome" in fixture
+    assert fixture["expected_outcome"] in {"resolved", "probable_cause", "handoff"}
+
+
+def test_realtime_export_handoff_has_summary(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    for seed in range(100, 200):
+        case = generate_call(scenario_type="permissions_access", seed=seed, use_llm=False, profile="harder")
+        if case["ground_truth"]["resolution_type"] in {"handoff", "escalated", "unresolved"}:
+            save_case(case, cases_dir=cases_dir)
+            update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+            break
+    else:
+        return
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+    fixture_path = list((export_dir / "realtime_support").glob("*.json"))[0]
+    fixture = json.loads(fixture_path.read_text())
+    assert fixture["expected_outcome"] == "handoff"
+    assert "handoff_summary" in fixture
+    assert fixture["handoff_summary"]
+    assert fixture["final_cause"] == ""
+
+
+def test_realtime_export_compact_labels(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="permissions_access", seed=456, use_llm=False, profile="hard")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    fixture_path = export_dir / "realtime_support" / f"{case['case_id']}.json"
+    fixture = json.loads(fixture_path.read_text())
+
+    for state in fixture["expected_by_turn"]:
+        for fact in state["facts"]:
+            assert len(fact) < 50, f"fact label too long: {fact}"
+            assert " " not in fact, f"fact label contains space: {fact}"
 
 
 def test_realtime_export_excludes_ground_truth_internals(tmp_path) -> None:
@@ -170,10 +252,13 @@ def test_realtime_export_manifest(tmp_path) -> None:
 
     export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
 
-    manifest = json.loads((export_dir / "realtime_support_manifest.json").read_text())
-    assert manifest["schema_version"] == "support_call_generator.realtime_support.v1"
-    assert manifest["case_count"] == 2
-    assert len(manifest["cases"]) == 2
+    envelope = json.loads((export_dir / "realtime_support_envelope.json").read_text())
+    assert envelope["schema_version"] == "support_process_fixture.v1"
+    assert envelope["case_count"] == 2
+    assert len(envelope["cases"]) == 2
+    for case in envelope["cases"]:
+        assert "case_id" in case
+        assert "transcript_turns" in case
 
 
 def test_batch_report() -> None:
