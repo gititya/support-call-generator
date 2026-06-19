@@ -24,6 +24,10 @@ def save_case(case: dict[str, Any], cases_dir: Path = CASES_DIR) -> Path:
         _write_json(case_dir / "expected_by_turn.json", case["expected_by_turn"])
     if case.get("intent_tags") is not None:
         _write_json(case_dir / "intent_tags.json", case["intent_tags"])
+    if case.get("consumer_summary") is not None:
+        _write_json(case_dir / "consumer_summary.json", case["consumer_summary"])
+    if case.get("exposure_marker") is not None:
+        _write_json(case_dir / "exposure_marker.json", case["exposure_marker"])
     _write_json(case_dir / "leakage_report.json", case["leakage_report"])
     _write_json(case_dir / "review.json", case["review"])
 
@@ -36,6 +40,8 @@ def load_case(case_id: str, cases_dir: Path = CASES_DIR) -> dict[str, Any]:
     context_path = case_dir / "context_events.json"
     state_path = case_dir / "expected_by_turn.json"
     tags_path = case_dir / "intent_tags.json"
+    summary_path = case_dir / "consumer_summary.json"
+    exposure_path = case_dir / "exposure_marker.json"
     return {
         "case_id": case_id,
         "scenario_spec": _read_json(case_dir / "scenario_spec.json"),
@@ -46,6 +52,8 @@ def load_case(case_id: str, cases_dir: Path = CASES_DIR) -> dict[str, Any]:
         "context_events": _read_json(context_path) if context_path.exists() else [],
         "expected_by_turn": _read_json(state_path) if state_path.exists() else [],
         "intent_tags": _read_json(tags_path) if tags_path.exists() else [],
+        "consumer_summary": _read_json(summary_path) if summary_path.exists() else {},
+        "exposure_marker": _read_json(exposure_path) if exposure_path.exists() else {},
         "leakage_report": _read_json(leakage_path) if leakage_path.exists() else {"status": "UNKNOWN", "failures": [], "warnings": []},
         "review": _read_json(case_dir / "review.json"),
     }

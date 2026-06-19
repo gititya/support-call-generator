@@ -4,7 +4,13 @@ import random
 from typing import Any
 
 
-SCENARIO_TYPES = ["permissions_access", "onboarding_migration", "workspace_setup"]
+SCENARIO_TYPES = [
+    "permissions_access",
+    "onboarding_migration",
+    "workspace_setup",
+    "integrations_data_sync",
+    "billing_plan_entitlement",
+]
 
 CUSTOMER_MOODS = ["calm", "confused", "frustrated", "anxious", "impatient"]
 CUSTOMER_CLARITY = ["clear", "partial", "scattered"]
@@ -62,6 +68,26 @@ ROOT_CAUSE_CATALOG = {
         "provisioning timeout",
         "template dependency failure",
         "region mismatch",
+    ],
+    "integrations_data_sync": [
+        "expired OAuth refresh token",
+        "webhook retry exhaustion",
+        "external ID mapping conflict",
+        "CRM field type mismatch",
+        "rate limit backoff delay",
+        "duplicate record merge rule",
+        "partial sync cursor reset",
+        "stale integration permission scope",
+    ],
+    "billing_plan_entitlement": [
+        "seat limit reached",
+        "feature gate missing after plan change",
+        "failed invoice grace period",
+        "trial expiration entitlement lag",
+        "usage meter delay",
+        "invoice owner mismatch",
+        "downgrade removed premium permission",
+        "contracted add-on not provisioned",
     ],
 }
 
@@ -229,6 +255,114 @@ SCENARIO_LIBRARY: dict[str, list[dict[str, Any]]] = {
             "final_outcome": "agent identifies missing OAuth permission and has admin reauthorize",
         },
     ],
+    "integrations_data_sync": [
+        {
+            "hidden_root_cause": "The CRM sync is stalled because the OAuth refresh token expired after an admin password rotation.",
+            "issue_path": [
+                "customer reports CRM records stopped updating",
+                "agent checks recent sync jobs and field mappings",
+                "late evidence shows auth refresh failures after admin rotation",
+                "customer reauthorizes the integration owner account",
+            ],
+            "known_facts": [
+                "new CRM records are not appearing in the SaaS workspace",
+                "older synced records are still visible",
+                "manual CSV import still works",
+            ],
+            "delayed_facts": [
+                "sync logs show repeated refresh token failures",
+                "the integration owner changed their password yesterday",
+                "webhook delivery is still succeeding for another object type",
+            ],
+            "wrong_paths": [
+                "CRM field mapping",
+                "rate limit",
+                "webhook outage",
+            ],
+            "escalation_trigger": "customer's revenue team is missing same-day pipeline updates",
+            "final_outcome": "agent identifies expired OAuth refresh token and has the admin reauthorize the CRM integration",
+        },
+        {
+            "hidden_root_cause": "Duplicate records are being created because external IDs changed during a CRM migration.",
+            "issue_path": [
+                "customer reports duplicate account records after sync",
+                "agent checks merge rules and recent connector changes",
+                "late evidence shows external IDs changed during migration",
+                "sync matching rules are updated before backfill",
+            ],
+            "known_facts": [
+                "duplicates appeared after a CRM migration",
+                "new records sync successfully",
+                "existing account names look almost identical",
+            ],
+            "delayed_facts": [
+                "external IDs were regenerated in the CRM migration",
+                "the connector still matches on the old external ID field",
+                "one non-migrated account did not duplicate",
+            ],
+            "wrong_paths": [
+                "merge rule disabled",
+                "manual import duplication",
+                "field mapping conflict",
+            ],
+            "escalation_trigger": "customer says sales reps cannot trust account ownership before a forecast review",
+            "final_outcome": "agent identifies external ID mapping drift and pauses sync until matching rules are corrected",
+        },
+    ],
+    "billing_plan_entitlement": [
+        {
+            "hidden_root_cause": "A plan downgrade removed access to the automation feature, but cached UI state still shows the old menu.",
+            "issue_path": [
+                "customer reports automation suddenly fails for admins",
+                "agent checks permissions and recent product changes",
+                "late evidence shows a plan downgrade changed entitlements",
+                "customer confirms whether to restore the plan or remove the workflow",
+            ],
+            "known_facts": [
+                "automation menu is visible but execution fails",
+                "admins can still access other workspace settings",
+                "the account changed billing terms recently",
+            ],
+            "delayed_facts": [
+                "entitlement logs show automation disabled after downgrade",
+                "UI cache still exposes the old automation menu",
+                "a workspace on the previous plan can still run the workflow",
+            ],
+            "wrong_paths": [
+                "workflow misconfiguration",
+                "integration permission",
+                "regional outage",
+            ],
+            "escalation_trigger": "customer says a renewal conversation depends on proving whether this is a bug or plan behavior",
+            "final_outcome": "agent separates stale UI visibility from downgraded plan entitlement",
+        },
+        {
+            "hidden_root_cause": "New seats cannot be added because a failed invoice put the account into a grace-period entitlement hold.",
+            "issue_path": [
+                "customer reports they cannot add new users",
+                "agent checks role limits and invite delivery",
+                "late evidence shows a failed invoice hold",
+                "billing owner resolves payment before new seats are added",
+            ],
+            "known_facts": [
+                "existing users can still work",
+                "new invites fail near the final step",
+                "the admin sees a generic seat availability message",
+            ],
+            "delayed_facts": [
+                "billing system shows a failed invoice in grace period",
+                "seat count has room but entitlement expansion is paused",
+                "billing owner email differs from the workspace admin",
+            ],
+            "wrong_paths": [
+                "seat limit",
+                "invite email delivery",
+                "role permission",
+            ],
+            "escalation_trigger": "customer needs to add a contractor before a same-day onboarding session",
+            "final_outcome": "agent identifies grace-period billing hold and routes the payment owner to resolve it",
+        },
+    ],
 }
 
 
@@ -320,6 +454,8 @@ def _catalog_entry(scenario_type: str, label: str, root_cause: str) -> dict[str,
         "permissions_access": "access issue",
         "onboarding_migration": "migration issue",
         "workspace_setup": "workspace setup issue",
+        "integrations_data_sync": "integration sync issue",
+        "billing_plan_entitlement": "billing or entitlement issue",
     }[scenario_type]
     return {
         "hidden_root_cause": root_cause,
@@ -352,6 +488,8 @@ def _wrong_paths_for(scenario_type: str, label: str) -> list[str]:
         "permissions_access": ["browser cache", "license limit", "expired invitation", "regional outage", "password reset"],
         "onboarding_migration": ["partial import", "timezone conversion", "duplicate merge", "file upload corruption", "workspace quota"],
         "workspace_setup": ["billing hold", "region mismatch", "template outage", "invite delivery", "workspace name conflict"],
+        "integrations_data_sync": ["field mapping conflict", "rate limit", "webhook outage", "manual import duplication", "CRM permission"],
+        "billing_plan_entitlement": ["seat limit", "invite email delivery", "role permission", "workflow misconfiguration", "regional outage"],
     }[scenario_type]
     return [item for item in pool if item.lower() not in label.lower()][:3]
 
@@ -361,6 +499,8 @@ def _root_cause_sentence(scenario_type: str, label: str) -> str:
         "permissions_access": f"The access failure is caused by {label}.",
         "onboarding_migration": f"The migration problem is caused by {label}.",
         "workspace_setup": f"The workspace setup failure is caused by {label}.",
+        "integrations_data_sync": f"The integration sync problem is caused by {label}.",
+        "billing_plan_entitlement": f"The billing or entitlement problem is caused by {label}.",
     }[scenario_type]
 
 

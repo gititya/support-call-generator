@@ -19,12 +19,16 @@ def export_reviewed(
 ) -> dict[str, int]:
     transcript_dir = export_dir / "transcripts"
     truth_dir = export_dir / "ground_truth"
+    metadata_dir = export_dir / "metadata"
     if transcript_dir.exists():
         shutil.rmtree(transcript_dir)
     if truth_dir.exists():
         shutil.rmtree(truth_dir)
+    if metadata_dir.exists():
+        shutil.rmtree(metadata_dir)
     transcript_dir.mkdir(parents=True, exist_ok=True)
     truth_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict[str, str]] = []
     manifest_cases: list[dict[str, str]] = []
@@ -45,6 +49,12 @@ def export_reviewed(
         leakage_path = source_dir / "leakage_report.json"
         if leakage_path.exists():
             shutil.copyfile(leakage_path, truth_dir / f"{case_id}.leakage_report.json")
+        summary_path = source_dir / "consumer_summary.json"
+        if summary_path.exists():
+            shutil.copyfile(summary_path, metadata_dir / f"{case_id}.consumer_summary.json")
+        exposure_path = source_dir / "exposure_marker.json"
+        if exposure_path.exists():
+            shutil.copyfile(exposure_path, metadata_dir / f"{case_id}.exposure_marker.json")
 
         spec = case["scenario_spec"]
         review = case["review"]
@@ -62,6 +72,7 @@ def export_reviewed(
                 "resolution_type": case["ground_truth"].get("resolution_type", ""),
                 "root_cause_category": case["ground_truth"].get("root_cause_category", ""),
                 "leakage_status": case["leakage_report"]["status"],
+                "sensitivity_level": case.get("exposure_marker", {}).get("sensitivity_level", ""),
                 "escalation_risk": spec["escalation_risk"],
                 "model_name": review.get("model_name", ""),
                 "generation_mode": review.get("generation_mode", ""),
@@ -78,6 +89,8 @@ def export_reviewed(
                 "leakage_status": case["leakage_report"]["status"],
                 "transcript_json": f"transcripts/{case_id}.json",
                 "transcript_markdown": f"transcripts/{case_id}.md",
+                "consumer_summary": f"metadata/{case_id}.consumer_summary.json",
+                "exposure_marker": f"metadata/{case_id}.exposure_marker.json",
             }
         )
         exported += 1
@@ -101,6 +114,7 @@ def _write_index(path: Path, rows: list[dict[str, str]]) -> None:
         "resolution_type",
         "root_cause_category",
         "leakage_status",
+        "sensitivity_level",
         "escalation_risk",
         "model_name",
         "generation_mode",

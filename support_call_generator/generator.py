@@ -11,6 +11,7 @@ from support_call_generator.expected_state import derive_expected_state
 from support_call_generator.fallback import build_offline_payload
 from support_call_generator.leakage import assess_leakage
 from support_call_generator.llm import generate_with_llm
+from support_call_generator.metadata import build_consumer_summary, build_exposure_marker
 from support_call_generator.render import render_transcript_markdown
 from support_call_generator.scenarios import SCENARIO_TYPES, build_scenario_spec
 from support_call_generator.tags import derive_intent_tags
@@ -159,6 +160,8 @@ def _build_case(
         "expected_timeline": payload["expected_timeline"],
         "context_events": context_events,
         "expected_by_turn": expected_by_turn,
+        "consumer_summary": build_consumer_summary(spec, payload["transcript"]),
+        "exposure_marker": build_exposure_marker(spec, payload["transcript"]),
         "leakage_report": payload.get("leakage_report", {"status": "UNKNOWN", "failures": [], "warnings": []}),
         "review": {
             "status": "draft",

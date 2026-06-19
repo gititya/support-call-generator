@@ -8,6 +8,8 @@ CONTEXT_SOURCES: dict[str, list[str]] = {
     "permissions_access": ["admin_panel", "identity_provider", "audit_log", "incident_note", "prior_ticket"],
     "onboarding_migration": ["admin_panel", "migration_log", "audit_log", "prior_ticket", "incident_note"],
     "workspace_setup": ["admin_panel", "billing_system", "email_delivery", "audit_log", "incident_note"],
+    "integrations_data_sync": ["integration_log", "crm_connector", "webhook_log", "admin_panel", "prior_ticket"],
+    "billing_plan_entitlement": ["billing_system", "entitlement_service", "admin_panel", "audit_log", "prior_ticket"],
 }
 
 _IRRELEVANT_TEMPLATES: dict[str, list[dict[str, Any]]] = {
@@ -47,6 +49,30 @@ _IRRELEVANT_TEMPLATES: dict[str, list[dict[str, Any]]] = {
             "facts": ["prior_ticket:other_workspace", "status:resolved"],
         },
     ],
+    "integrations_data_sync": [
+        {
+            "source": "prior_ticket",
+            "description": "Previous ticket about a sandbox connector was resolved and involved a different workspace.",
+            "facts": ["prior_ticket:sandbox_connector", "status:resolved"],
+        },
+        {
+            "source": "webhook_log",
+            "description": "Unrelated webhook retries affected a deprecated object type that this customer does not use.",
+            "facts": ["webhook:deprecated_object", "scope:unrelated"],
+        },
+    ],
+    "billing_plan_entitlement": [
+        {
+            "source": "prior_ticket",
+            "description": "Earlier invoice PDF request was resolved and did not change plan entitlements.",
+            "facts": ["prior_ticket:invoice_pdf", "status:resolved"],
+        },
+        {
+            "source": "admin_panel",
+            "description": "A different workspace reached a seat warning last month, but this workspace did not.",
+            "facts": ["seat_warning:different_workspace", "scope:unrelated"],
+        },
+    ],
 }
 
 _CONFLICTING_TEMPLATES: dict[str, list[dict[str, Any]]] = {
@@ -69,6 +95,20 @@ _CONFLICTING_TEMPLATES: dict[str, list[dict[str, Any]]] = {
             "source": "billing_system",
             "description": "Billing system shows the account is active and fully paid, ruling out a billing hold.",
             "facts": ["billing_status:active", "payment:current"],
+        },
+    ],
+    "integrations_data_sync": [
+        {
+            "source": "webhook_log",
+            "description": "Webhook delivery shows recent successful acknowledgements, which weakens a broad outage hypothesis.",
+            "facts": ["webhook_delivery:successful"],
+        },
+    ],
+    "billing_plan_entitlement": [
+        {
+            "source": "admin_panel",
+            "description": "Admin panel shows available seats, contradicting a simple seat-limit explanation.",
+            "facts": ["seat_count:available"],
         },
     ],
 }
@@ -221,6 +261,18 @@ _OPERATIONAL_PATTERNS = [
     (["provisioning", "timeout"], "provisioning:timeout"),
     (["template", "dependency"], "template:dependency_failure"),
     (["region", "mismatch"], "region:mismatch"),
+    (["refresh", "token"], "oauth:refresh_token_failed"),
+    (["integration", "owner", "password"], "integration_owner:password_rotated"),
+    (["webhook", "delivery"], "webhook:delivery_status"),
+    (["external", "ids"], "external_id:changed"),
+    (["old", "external", "id"], "external_id:old_match"),
+    (["non-migrated", "account"], "comparison:non_migrated_account"),
+    (["entitlement", "logs"], "entitlement:changed"),
+    (["automation", "disabled"], "feature:automation_disabled"),
+    (["ui", "cache"], "ui:stale_cache"),
+    (["failed", "invoice"], "invoice:failed"),
+    (["grace", "period"], "billing:grace_period"),
+    (["billing", "owner"], "billing_owner:different_from_admin"),
 ]
 
 

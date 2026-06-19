@@ -12,6 +12,8 @@ REQUIRED_CASE_KEYS = {
     "transcript_md",
     "ground_truth",
     "expected_timeline",
+    "consumer_summary",
+    "exposure_marker",
     "review",
 }
 
@@ -130,6 +132,16 @@ def validate_case(case: dict[str, Any]) -> ValidationResult:
     expected_by_turn = case.get("expected_by_turn", [])
     if expected_by_turn:
         _validate_expected_state(expected_by_turn, len(turns), errors)
+
+    summary = case.get("consumer_summary", {})
+    if not isinstance(summary, dict) or not summary.get("summary"):
+        errors.append("consumer_summary must include summary")
+
+    exposure = case.get("exposure_marker", {})
+    if not isinstance(exposure, dict) or exposure.get("synthetic_only") is not True:
+        errors.append("exposure_marker must identify synthetic-only data")
+    if exposure.get("sensitivity_level") not in {"low", "medium", "high"}:
+        errors.append("exposure_marker sensitivity_level is invalid")
 
     return ValidationResult(ok=not errors, errors=errors)
 

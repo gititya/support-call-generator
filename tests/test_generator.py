@@ -27,6 +27,10 @@ def test_generate_one_for_each_scenario() -> None:
         assert case["ground_truth"]["late_reveal_facts"]
         assert case["ground_truth"]["doctrine_adherence"]["leakage_controls"]
         assert case["ground_truth"]["why_difficult"]
+        assert case["consumer_summary"]["summary"]
+        assert case["consumer_summary"]["scenario_type"] == scenario
+        assert case["exposure_marker"]["synthetic_only"] is True
+        assert case["exposure_marker"]["sensitivity_level"] in {"low", "medium", "high"}
         assert case["leakage_report"]["status"] in {"PASS", "WARNING"}
         assert case["expected_timeline"]
         assert {entry["state"] for entry in case["expected_timeline"]} >= {
@@ -65,6 +69,8 @@ def test_export_keeps_transcripts_separate_from_truth(tmp_path) -> None:
     assert (export_dir / "ground_truth" / f"{case['case_id']}.ground_truth.json").exists()
     assert (export_dir / "ground_truth" / f"{case['case_id']}.expected_timeline.json").exists()
     assert (export_dir / "ground_truth" / f"{case['case_id']}.leakage_report.json").exists()
+    assert (export_dir / "metadata" / f"{case['case_id']}.consumer_summary.json").exists()
+    assert (export_dir / "metadata" / f"{case['case_id']}.exposure_marker.json").exists()
     assert (export_dir / "review_index.csv").exists()
     assert (export_dir / "manifest.json").exists()
 
@@ -76,6 +82,7 @@ def test_export_keeps_transcripts_separate_from_truth(tmp_path) -> None:
     manifest = json.loads((export_dir / "manifest.json").read_text())
     assert manifest["case_count"] == 1
     assert manifest["cases"][0]["transcript_json"] == f"transcripts/{case['case_id']}.json"
+    assert manifest["cases"][0]["exposure_marker"] == f"metadata/{case['case_id']}.exposure_marker.json"
     assert "ground_truth" not in json.dumps(manifest)
     assert "leakage_report" not in json.dumps(manifest)
 
