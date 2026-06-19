@@ -165,6 +165,62 @@ def test_realtime_export_context_events_translated(tmp_path) -> None:
         assert event["final_cause"], "final_cause should not be empty on revealing event"
 
 
+def test_realtime_export_expected_states_have_next_check(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="workspace_setup", seed=456, use_llm=False, profile="hard")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    fixture = json.loads((export_dir / "realtime_support" / f"{case['case_id']}.json").read_text())
+    assert all(state.get("next_check") for state in fixture["expected_by_turn"])
+    assert all(state.get("next_check_contains") for state in fixture["expected_by_turn"])
+    assert all(event.get("next_check") for event in fixture["context_events"])
+
+
+def test_realtime_export_probable_cause_preserves_uncertainty(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = _generate_resolution_case("probable_cause")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    fixture = json.loads((export_dir / "realtime_support" / f"{case['case_id']}.json").read_text())
+    assert fixture["expected_outcome"] == "probable_cause"
+    assert fixture["final_cause"]
+    assert "safe_customer_summary" in fixture
+    assert "likely cause" in fixture["safe_customer_summary"].lower()
+    assert "verify" in fixture["safe_customer_summary"].lower()
+    assert "remaining" in fixture["expected_by_turn"][-1]["next_check"].lower()
+
+
+def test_realtime_export_handoff_has_owner_and_safe_summary(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    for resolution in ["handoff", "escalated", "unresolved"]:
+        case = _generate_resolution_case(resolution)
+        save_case(case, cases_dir=cases_dir)
+        update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    for fixture_path in sorted((export_dir / "realtime_support").glob("*.json")):
+        fixture = json.loads(fixture_path.read_text())
+        assert fixture["expected_outcome"] == "handoff"
+        assert fixture["final_cause"] == ""
+        assert fixture["handoff_summary"]
+        assert fixture["next_owner"]
+        assert fixture["safe_customer_summary"]
+        assert fixture["expected_by_turn"][-1]["next_check"]
+
+
 def test_realtime_export_expected_outcome(tmp_path) -> None:
     cases_dir = tmp_path / "cases"
     export_dir = tmp_path / "exports"
@@ -286,3 +342,11 @@ def test_full_pipeline_with_validation() -> None:
             assert len(case["context_events"]) > 0
             assert len(case["expected_by_turn"]) == len(case["transcript"]["turns"])
             assert isinstance(case["intent_tags"], list)
+
+
+def _generate_resolution_case(resolution: str) -> dict:
+    for seed in range(1, 1000):
+        case = generate_call(scenario_type="permissions_access", seed=seed, use_llm=False, profile="harder")
+        if case["ground_truth"]["resolution_type"] == resolution:
+            return case
+    raise AssertionError(f"could not generate {resolution} case")

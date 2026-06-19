@@ -69,8 +69,17 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
         case.get("context_events", []),
         "" if is_handoff else compact_cause,
         case.get("expected_by_turn", []),
+        expected_outcome,
+        resolution,
     )
     turn_count = len(case["transcript"]["turns"])
+    translated_events = _ensure_turn_guidance_events(
+        translated_events,
+        turn_count,
+        expected_outcome,
+        resolution,
+        spec["scenario_type"],
+    )
     translated_states = _compute_expected_states(translated_events, turn_count)
 
     fixture: dict[str, Any] = {
@@ -86,9 +95,11 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
         "resolution_type": resolution,
         "intent_tags": case.get("intent_tags", []),
         "expected_outcome": expected_outcome,
+        "safe_customer_summary": _build_safe_customer_summary(case, expected_outcome),
     }
     if is_handoff:
         fixture["handoff_summary"] = _build_handoff_summary(case)
+        fixture["next_owner"] = _derive_next_owner(case)
     return fixture
 
 
@@ -111,6 +122,8 @@ def _translate_context_events(
     events: list[dict[str, Any]],
     final_cause: str,
     expected_states: list[dict[str, Any]],
+    expected_outcome: str,
+    resolution: str,
 ) -> list[dict[str, Any]]:
     states_by_turn: dict[int, dict[str, Any]] = {}
     for state in expected_states:
@@ -132,22 +145,31 @@ def _translate_context_events(
 
         turn = event.get("after_turn", 0)
         state = states_by_turn.get(turn)
-        out["next_check"] = _derive_event_next_check(event, state)
+        out["next_check"] = _derive_event_next_check(event, state, expected_outcome, resolution)
 
         translated.append(out)
     return translated
 
 
-def _derive_event_next_check(event: dict[str, Any], state: dict[str, Any] | None) -> str:
+def _derive_event_next_check(
+    event: dict[str, Any],
+    state: dict[str, Any] | None,
+    expected_outcome: str,
+    resolution: str,
+) -> str:
     if event.get("reveals_final_cause"):
-        return "confirm_root_cause"
+        if expected_outcome == "resolved":
+            return "confirm mechanism evidence and customer-visible corrective action"
+        if expected_outcome == "probable_cause":
+            return "identify remaining verification before presenting likely cause"
+        return _handoff_next_check(resolution)
 
     ruled = event.get("ruled_out_branches", [])
     candidates = event.get("candidate_branches", [])
     if ruled:
-        return _slugify_spaces(f"verify_after_ruling_out_{ruled[0]}")
+        return f"verify evidence after ruling out {_readable_label(ruled[0])}"
     if candidates:
-        return _slugify_spaces(f"investigate_{candidates[0]}")
+        return f"investigate evidence for {_readable_label(candidates[0])}"
 
     if state:
         checks = state.get("next_check_contains", [])
@@ -156,8 +178,68 @@ def _derive_event_next_check(event: dict[str, Any], state: dict[str, Any] | None
 
     facts = event.get("facts", [])
     if facts:
-        return _slugify_spaces(f"follow_up_{facts[0]}")
-    return "continue_investigation"
+        return f"follow up on {_readable_label(facts[0])}"
+    return "continue investigation with the next useful evidence check"
+
+
+def _ensure_turn_guidance_events(
+    events: list[dict[str, Any]],
+    turn_count: int,
+    expected_outcome: str,
+    resolution: str,
+    scenario_type: str,
+) -> list[dict[str, Any]]:
+    by_turn = {int(event.get("after_turn", 0)): event for event in events if event.get("next_check")}
+    enriched = list(events)
+    final_third = max(1, int(turn_count * 2 / 3))
+
+    for turn in range(1, turn_count + 1):
+        if turn in by_turn:
+            continue
+        enriched.append({
+            "after_turn": turn,
+            "source": "support_process_guidance",
+            "description": "Support-process guidance for the next useful investigation step.",
+            "facts": [],
+            "resolved_unknowns": [],
+            "ruled_out_branches": [],
+            "candidate_branches": [],
+            "relevant": True,
+            "is_conflicting": False,
+            "reveals_final_cause": False,
+            "next_check": _turn_guidance_next_check(turn, turn_count, final_third, expected_outcome, resolution, scenario_type),
+        })
+
+    enriched.sort(key=lambda e: (int(e.get("after_turn", 0)), e.get("source", "")))
+    return enriched
+
+
+def _turn_guidance_next_check(
+    turn: int,
+    turn_count: int,
+    final_third: int,
+    expected_outcome: str,
+    resolution: str,
+    scenario_type: str,
+) -> str:
+    domain = scenario_type.replace("_", " ")
+    if turn < max(3, int(turn_count / 3)):
+        return f"ask what changed and collect comparison evidence for the {domain} issue"
+    if turn < final_third:
+        return f"verify or rule out active {domain} branches with product evidence"
+    if expected_outcome == "resolved":
+        return "confirm mechanism evidence and customer-visible corrective action"
+    if expected_outcome == "probable_cause":
+        return "identify remaining verification before presenting likely cause"
+    return _handoff_next_check(resolution)
+
+
+def _handoff_next_check(resolution: str) -> str:
+    if resolution == "escalated":
+        return "package evidence and send next action to engineering or product owner"
+    if resolution == "unresolved":
+        return "assign follow-up owner and preserve open verification steps"
+    return "handoff to the customer admin or implementation owner with evidence summary"
 
 
 def _unknowns_from_event(event: dict[str, Any]) -> list[str]:
@@ -230,6 +312,7 @@ def _compute_expected_states(
             "unknowns": list(unknowns),
             "candidate_branches": list(candidate_branches),
             "ruled_out_branches": list(ruled_out_branches),
+            "next_check": next_check or "continue support investigation with the next useful evidence check",
             "next_check_contains": next_check_contains,
             "final_cause_allowed": final_cause_allowed,
         })
@@ -282,6 +365,41 @@ def _compact_check(raw: str) -> str:
 
 def _slugify_spaces(text: str) -> str:
     return text.replace(" ", "_").replace(".", "").strip("_")
+
+
+def _readable_label(text: str) -> str:
+    return text.replace("_", " ").replace(":", " ")
+
+
+def _build_safe_customer_summary(case: dict[str, Any], expected_outcome: str) -> str:
+    gt = case["ground_truth"]
+    spec = case["scenario_spec"]
+    outcome = gt.get("final_outcome", spec.get("final_outcome", ""))
+
+    if expected_outcome == "resolved":
+        return f"Support found evidence for the mechanism and can confirm the corrective action. {outcome}".strip()
+    if expected_outcome == "probable_cause":
+        cause = gt.get("actual_root_cause", "the leading operational cause")
+        return (
+            f"The likely cause is {cause}. Support should verify the remaining product evidence before treating it as fully resolved."
+        )
+    return _build_handoff_summary(case)
+
+
+def _derive_next_owner(case: dict[str, Any]) -> str:
+    resolution = case["ground_truth"]["resolution_type"]
+    scenario = case["scenario_spec"]["scenario_type"]
+    if resolution == "escalated":
+        return "engineering/product support"
+    if scenario == "permissions_access":
+        return "customer admin or identity owner"
+    if scenario == "workspace_setup":
+        return "customer admin or implementation owner"
+    if scenario == "integrations_data_sync":
+        return "integration owner or engineering support"
+    if scenario == "billing_plan_entitlement":
+        return "billing owner or account support"
+    return "follow-up support owner"
 
 
 def _build_handoff_summary(case: dict[str, Any]) -> str:
