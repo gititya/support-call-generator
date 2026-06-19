@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 
 from support_call_generator.exporter import export_reviewed
+from support_call_generator.exporter import EXPORT_BUNDLES
 from support_call_generator.export_realtime import export_realtime_support
 from support_call_generator.generator import generate_call
 from support_call_generator.profiles import PROFILE_NAMES
@@ -36,6 +37,15 @@ def main() -> None:
     export.add_argument("--export-dir", default="exports")
     export.add_argument("--status", choices=["accepted", "draft", "rejected", "all"], default="accepted")
     export.add_argument("--format", dest="export_format", choices=["default", "realtime_support"], default="default")
+    export.add_argument("--bundle", choices=[*EXPORT_BUNDLES, "process_fixture"], default="eval_pack")
+
+    pack = subparsers.add_parser("generate-pack")
+    pack.add_argument("--count", type=int, default=10)
+    pack.add_argument("--cases-dir", default="data/generated_pack_cases")
+    pack.add_argument("--export-dir", default="exports/generated_pack")
+    pack.add_argument("--offline", action="store_true")
+    pack.add_argument("--profile", choices=PROFILE_NAMES, default="hard")
+    pack.add_argument("--bundle", choices=[*EXPORT_BUNDLES, "process_fixture"], default="review_pack")
 
     args = parser.parse_args()
 
@@ -53,42 +63,12 @@ def main() -> None:
         return
 
     if args.command == "generate-batch":
-        saved = 0
-        attempts = 0
-        max_attempts = args.count * 4
-        root_cause_counts = _root_cause_counts(Path(args.cases_dir))
-        batch_cases: list = []
-        while saved < args.count and attempts < max_attempts:
-            scenario = SCENARIO_TYPES[saved % len(SCENARIO_TYPES)]
-            attempts += 1
-            try:
-                case = generate_call(
-                    scenario_type=scenario,
-                    use_llm=False if args.offline else None,
-                    root_cause_counts=root_cause_counts,
-                    profile=args.profile,
-                )
-            except Exception as exc:
-                if exc.__class__.__name__ == "AuthenticationError":
-                    print("generation failed: authentication error", file=sys.stderr)
-                    sys.exit(1)
-                print(f"skipping malformed generation attempt: {exc.__class__.__name__}", file=sys.stderr)
-                continue
-            save_case(case, cases_dir=Path(args.cases_dir))
-            batch_cases.append(case)
-            root_cause_id = case["scenario_spec"]["root_cause_id"]
-            root_cause_counts[root_cause_id] = root_cause_counts.get(root_cause_id, 0) + 1
-            print(case["case_id"])
-            saved += 1
-        if saved < args.count:
-            print(f"generation failed: only saved {saved} of {args.count} cases", file=sys.stderr)
-            sys.exit(1)
-        print()
+        batch_cases = _generate_batch(args.count, Path(args.cases_dir), args.offline, args.profile)
         print_batch_report(batch_cases)
         return
 
     if args.command == "export-reviewed":
-        if args.export_format == "realtime_support":
+        if args.export_format == "realtime_support" or args.bundle == "process_fixture":
             result = export_realtime_support(
                 cases_dir=Path(args.cases_dir),
                 export_dir=Path(args.export_dir),
@@ -99,8 +79,28 @@ def main() -> None:
                 cases_dir=Path(args.cases_dir),
                 export_dir=Path(args.export_dir),
                 status=args.status,
+                bundle=args.bundle,
             )
         print(f"exported {result['exported']} cases")
+        return
+
+    if args.command == "generate-pack":
+        batch_cases = _generate_batch(args.count, Path(args.cases_dir), args.offline, args.profile)
+        print_batch_report(batch_cases)
+        if args.bundle == "process_fixture":
+            result = export_realtime_support(
+                cases_dir=Path(args.cases_dir),
+                export_dir=Path(args.export_dir),
+                status="all",
+            )
+        else:
+            result = export_reviewed(
+                cases_dir=Path(args.cases_dir),
+                export_dir=Path(args.export_dir),
+                status="all",
+                bundle=args.bundle,
+            )
+        print(f"exported {result['exported']} cases to {args.export_dir}")
         return
 
 
@@ -112,3 +112,43 @@ def _root_cause_counts(cases_dir: Path) -> dict[str, int]:
         if root_id:
             counts[root_id] = counts.get(root_id, 0) + 1
     return counts
+
+
+def _generate_batch(
+    count: int,
+    cases_dir: Path,
+    offline: bool,
+    profile: str | None,
+) -> list[dict]:
+    saved = 0
+    attempts = 0
+    max_attempts = count * 4
+    root_cause_counts = _root_cause_counts(cases_dir)
+    batch_cases: list = []
+    while saved < count and attempts < max_attempts:
+        scenario = SCENARIO_TYPES[saved % len(SCENARIO_TYPES)]
+        attempts += 1
+        try:
+            case = generate_call(
+                scenario_type=scenario,
+                use_llm=False if offline else None,
+                root_cause_counts=root_cause_counts,
+                profile=profile,
+            )
+        except Exception as exc:
+            if exc.__class__.__name__ == "AuthenticationError":
+                print("generation failed: authentication error", file=sys.stderr)
+                sys.exit(1)
+            print(f"skipping malformed generation attempt: {exc.__class__.__name__}", file=sys.stderr)
+            continue
+        save_case(case, cases_dir=cases_dir)
+        batch_cases.append(case)
+        root_cause_id = case["scenario_spec"]["root_cause_id"]
+        root_cause_counts[root_cause_id] = root_cause_counts.get(root_cause_id, 0) + 1
+        print(case["case_id"])
+        saved += 1
+    if saved < count:
+        print(f"generation failed: only saved {saved} of {count} cases", file=sys.stderr)
+        sys.exit(1)
+    print()
+    return batch_cases

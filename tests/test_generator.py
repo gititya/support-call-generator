@@ -83,10 +83,53 @@ def test_export_keeps_transcripts_separate_from_truth(tmp_path) -> None:
 
     manifest = json.loads((export_dir / "manifest.json").read_text())
     assert manifest["case_count"] == 1
+    assert manifest["bundle"] == "eval_pack"
     assert manifest["cases"][0]["transcript_json"] == f"transcripts/{case['case_id']}.json"
     assert manifest["cases"][0]["exposure_marker"] == f"metadata/{case['case_id']}.exposure_marker.json"
     assert "ground_truth" not in json.dumps(manifest)
     assert "leakage_report" not in json.dumps(manifest)
+
+
+def test_export_bundle_transcripts_only(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="permissions_access", seed=456, use_llm=False)
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "usable", cases_dir=cases_dir)
+
+    result = export_reviewed(cases_dir=cases_dir, export_dir=export_dir, bundle="transcripts_only")
+
+    assert result == {"exported": 1}
+    assert (export_dir / "transcripts" / f"{case['case_id']}.json").exists()
+    assert (export_dir / "transcripts" / f"{case['case_id']}.md").exists()
+    assert not (export_dir / "ground_truth").exists()
+    assert not (export_dir / "metadata").exists()
+
+    manifest = json.loads((export_dir / "manifest.json").read_text())
+    assert manifest["bundle"] == "transcripts_only"
+    assert "consumer_summary" not in manifest["cases"][0]
+
+
+def test_export_bundle_review_pack(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="permissions_access", seed=456, use_llm=False)
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "usable", cases_dir=cases_dir)
+
+    result = export_reviewed(cases_dir=cases_dir, export_dir=export_dir, bundle="review_pack")
+
+    assert result == {"exported": 1}
+    assert (export_dir / "transcripts" / f"{case['case_id']}.json").exists()
+    assert (export_dir / "metadata" / f"{case['case_id']}.consumer_summary.json").exists()
+    assert (export_dir / "metadata" / f"{case['case_id']}.exposure_marker.json").exists()
+    assert not (export_dir / "ground_truth").exists()
+
+    manifest = json.loads((export_dir / "manifest.json").read_text())
+    assert manifest["bundle"] == "review_pack"
+    assert manifest["cases"][0]["consumer_summary"] == f"metadata/{case['case_id']}.consumer_summary.json"
 
 
 def test_review_status_persists(tmp_path) -> None:
@@ -104,6 +147,7 @@ def test_package_public_api_and_console_script() -> None:
     case = scg.generate_call(scenario_type="permissions_access", seed=123, use_llm=False)
     assert case["case_id"]
     assert "permissions_access" in scg.SCENARIO_TYPES
+    assert "review_pack" in scg.EXPORT_BUNDLES
 
     pyproject = tomllib.loads(open("pyproject.toml", encoding="utf-8").read())
     assert pyproject["project"]["scripts"]["support-call-generator"] == "support_call_generator.cli:main"
