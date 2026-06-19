@@ -63,12 +63,15 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
     is_handoff = resolution in _HANDOFF_RESOLUTIONS
     expected_outcome = _derive_expected_outcome(resolution)
 
+    compact_cause = _compact_root_cause(spec.get("root_cause_id", ""), final_cause)
+
     translated_events = _translate_context_events(
         case.get("context_events", []),
-        final_cause,
+        "" if is_handoff else compact_cause,
         case.get("expected_by_turn", []),
     )
-    translated_states = _translate_expected_states(case.get("expected_by_turn", []))
+    turn_count = len(case["transcript"]["turns"])
+    translated_states = _compute_expected_states(translated_events, turn_count)
 
     fixture: dict[str, Any] = {
         "schema_version": REALTIME_SCHEMA,
@@ -79,7 +82,7 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
         "transcript_turns": case["transcript"]["turns"],
         "context_events": translated_events,
         "expected_by_turn": translated_states,
-        "final_cause": "" if is_handoff else final_cause,
+        "final_cause": "" if is_handoff else compact_cause,
         "resolution_type": resolution,
         "intent_tags": case.get("intent_tags", []),
         "expected_outcome": expected_outcome,
@@ -87,6 +90,11 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
     if is_handoff:
         fixture["handoff_summary"] = _build_handoff_summary(case)
     return fixture
+
+
+def _compact_root_cause(root_cause_id: str, actual_root_cause: str) -> str:
+    slug = root_cause_id or _slugify_spaces(actual_root_cause.lower())
+    return slug.strip("_")
 
 
 def _derive_expected_outcome(resolution: str) -> str:
@@ -114,17 +122,17 @@ def _translate_context_events(
         out["relevant"] = not event.get("is_irrelevant", False)
         out.pop("is_irrelevant", None)
 
+        out["facts"] = [_compact_label(f) for f in event.get("facts", [])]
+        out["ruled_out_branches"] = [_slugify_spaces(b) for b in event.get("ruled_out_branches", [])]
+        out["candidate_branches"] = [_slugify_spaces(b) for b in event.get("candidate_branches", [])]
+        out["resolved_unknowns"] = [_slugify_spaces(u) for u in event.get("resolved_unknowns", [])]
+
         if event.get("reveals_final_cause") and final_cause:
             out["final_cause"] = final_cause
 
         turn = event.get("after_turn", 0)
         state = states_by_turn.get(turn)
         out["next_check"] = _derive_event_next_check(event, state)
-
-        if event.get("is_irrelevant", False) or not event.get("relevant", True):
-            unknowns = _unknowns_from_event(event)
-            if unknowns:
-                out["unknowns"] = unknowns
 
         translated.append(out)
     return translated
@@ -159,17 +167,82 @@ def _unknowns_from_event(event: dict[str, Any]) -> list[str]:
     return []
 
 
-def _translate_expected_states(states: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    translated = []
-    for state in states:
-        out = dict(state)
-        out["facts"] = _dedup([_compact_label(f) for f in state.get("facts", [])])
-        out["unknowns"] = _dedup([_compact_label(u) for u in state.get("unknowns", [])])
-        out["candidate_branches"] = _dedup([_compact_label(b) for b in state.get("candidate_branches", [])])
-        out["ruled_out_branches"] = _dedup([_compact_label(b) for b in state.get("ruled_out_branches", [])])
-        out["next_check_contains"] = [_compact_check(c) for c in state.get("next_check_contains", [])]
-        translated.append(out)
-    return translated
+def _compute_expected_states(
+    translated_events: list[dict[str, Any]],
+    turn_count: int,
+) -> list[dict[str, Any]]:
+    events_by_turn: dict[int, list[dict[str, Any]]] = {}
+    for event in translated_events:
+        t = int(event.get("after_turn", 0))
+        events_by_turn.setdefault(t, []).append(event)
+
+    facts: list[str] = []
+    unknowns: list[str] = []
+    candidate_branches: list[str] = []
+    ruled_out_branches: list[str] = []
+    next_check = ""
+    final_cause_allowed = False
+
+    states: list[dict[str, Any]] = []
+
+    for turn_num in range(1, turn_count + 1):
+        for event in events_by_turn.get(turn_num, []):
+            if event.get("relevant") is False:
+                continue
+            for f in event.get("facts", []):
+                if f not in facts:
+                    facts.append(f)
+            for u in event.get("unknowns", []):
+                if u not in facts and u not in unknowns:
+                    unknowns.append(u)
+            for u in event.get("resolved_unknowns", []):
+                while u in unknowns:
+                    unknowns.remove(u)
+            for b in event.get("candidate_branches", []):
+                if b not in ruled_out_branches and b not in candidate_branches:
+                    candidate_branches.append(b)
+            for b in event.get("ruled_out_branches", []):
+                while b in candidate_branches:
+                    candidate_branches.remove(b)
+                if b not in ruled_out_branches:
+                    ruled_out_branches.append(b)
+            if event.get("next_check"):
+                next_check = event["next_check"]
+            fc = event.get("final_cause", "")
+            if fc:
+                final_cause_allowed = True
+                if fc not in candidate_branches:
+                    candidate_branches.append(fc)
+                while fc in ruled_out_branches:
+                    ruled_out_branches.remove(fc)
+            if event.get("reveals_final_cause"):
+                final_cause_allowed = True
+            # reconcile: ruled_out not in candidates
+            for b in list(ruled_out_branches):
+                while b in candidate_branches:
+                    candidate_branches.remove(b)
+
+        next_check_contains = _extract_check_terms(next_check) if next_check else []
+
+        states.append({
+            "after_turn": turn_num,
+            "facts": list(facts),
+            "unknowns": list(unknowns),
+            "candidate_branches": list(candidate_branches),
+            "ruled_out_branches": list(ruled_out_branches),
+            "next_check_contains": next_check_contains,
+            "final_cause_allowed": final_cause_allowed,
+        })
+
+    return states
+
+
+def _extract_check_terms(next_check: str) -> list[str]:
+    words = next_check.replace("_", " ").split()
+    terms = [w for w in words if len(w) > 3 and w.lower() not in _LABEL_STOP]
+    if len(terms) > 3:
+        terms = terms[:3]
+    return terms
 
 
 def _dedup(items: list[str]) -> list[str]:
