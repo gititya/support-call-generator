@@ -10,7 +10,7 @@ from support_call_generator.context import build_context_events
 from support_call_generator.expected_state import derive_expected_state
 from support_call_generator.fallback import build_offline_payload
 from support_call_generator.leakage import assess_leakage
-from support_call_generator.llm import generate_with_openai
+from support_call_generator.llm import generate_with_llm
 from support_call_generator.render import render_transcript_markdown
 from support_call_generator.scenarios import SCENARIO_TYPES, build_scenario_spec
 from support_call_generator.tags import derive_intent_tags
@@ -56,9 +56,13 @@ def generate_call(
     case_id = case_id or f"call_{uuid4().hex[:10]}"
 
     spec = build_scenario_spec(scenario_type, seed, root_cause_counts=root_cause_counts, profile=profile)
-    model_name = os.getenv("SCG_MODEL", "gpt-5.4-mini")
 
-    should_use_llm = bool(os.getenv("OPENAI_API_KEY")) if use_llm is None else use_llm
+    from support_call_generator.llm import PROVIDER_MODELS
+    provider = os.getenv("SCG_PROVIDER", "openai")
+    model_name = os.getenv("SCG_MODEL", PROVIDER_MODELS.get(provider, "gpt-5.4-mini"))
+
+    has_key = bool(os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
+    should_use_llm = has_key if use_llm is None else use_llm
     if should_use_llm:
         return _generate_llm_case(case_id, spec, model_name, seed, max_attempts)
     else:
@@ -80,7 +84,7 @@ def _generate_llm_case(
     errors: list[str] = []
     for _ in range(max(1, max_attempts)):
         try:
-            payload = generate_with_openai(spec, model=model_name)
+            payload = generate_with_llm(spec, model=model_name)
             _validate_payload_shape(payload)
             case = _build_case(case_id, spec, payload, model_name, "llm", seed)
             return _validate_and_attach_leakage(case)
@@ -88,7 +92,7 @@ def _generate_llm_case(
             if exc.__class__.__name__ == "AuthenticationError":
                 raise
             errors.append(exc.__class__.__name__)
-    raise ValueError("OpenAI generation failed validation after retries: " + ", ".join(errors))
+    raise ValueError("LLM generation failed validation after retries: " + ", ".join(errors))
 
 
 def _validate_and_attach_leakage(case: dict[str, Any]) -> dict[str, Any]:
