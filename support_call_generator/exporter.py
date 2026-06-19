@@ -11,6 +11,11 @@ from support_call_generator.storage import CASES_DIR, load_case, list_cases
 
 EXPORT_DIR = Path("exports")
 EXPORT_BUNDLES = ("transcripts_only", "review_pack", "eval_pack")
+EXPORT_BUNDLE_DESCRIPTIONS = {
+    "transcripts_only": "Only transcript Markdown/JSON plus manifest and review index.",
+    "review_pack": "Transcripts plus safe review metadata: summaries, exposure markers, manifest, and review index.",
+    "eval_pack": "Review pack plus evaluator-only answer keys, expected timeline, and leakage report.",
+}
 
 
 def export_reviewed(

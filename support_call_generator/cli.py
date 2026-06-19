@@ -4,8 +4,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from support_call_generator.exporter import export_reviewed
-from support_call_generator.exporter import EXPORT_BUNDLES
+from support_call_generator.exporter import EXPORT_BUNDLE_DESCRIPTIONS, EXPORT_BUNDLES, export_reviewed
 from support_call_generator.export_realtime import export_realtime_support
 from support_call_generator.generator import generate_call
 from support_call_generator.profiles import PROFILE_NAMES
@@ -37,7 +36,7 @@ def main() -> None:
     export.add_argument("--export-dir", default="exports")
     export.add_argument("--status", choices=["accepted", "draft", "rejected", "all"], default="accepted")
     export.add_argument("--format", dest="export_format", choices=["default", "realtime_support"], default="default")
-    export.add_argument("--bundle", choices=[*EXPORT_BUNDLES, "process_fixture"], default="eval_pack")
+    export.add_argument("--bundle", choices=[*EXPORT_BUNDLES, "process_fixture"], default="eval_pack", help=_bundle_help())
 
     pack = subparsers.add_parser("generate-pack")
     pack.add_argument("--count", type=int, default=10)
@@ -45,7 +44,7 @@ def main() -> None:
     pack.add_argument("--export-dir", default="exports/generated_pack")
     pack.add_argument("--offline", action="store_true")
     pack.add_argument("--profile", choices=PROFILE_NAMES, default="hard")
-    pack.add_argument("--bundle", choices=[*EXPORT_BUNDLES, "process_fixture"], default="review_pack")
+    pack.add_argument("--bundle", choices=[*EXPORT_BUNDLES, "process_fixture"], default="review_pack", help=_bundle_help())
 
     args = parser.parse_args()
 
@@ -112,6 +111,14 @@ def _root_cause_counts(cases_dir: Path) -> dict[str, int]:
         if root_id:
             counts[root_id] = counts.get(root_id, 0) + 1
     return counts
+
+
+def _bundle_help() -> str:
+    descriptions = {
+        **EXPORT_BUNDLE_DESCRIPTIONS,
+        "process_fixture": "transcript plus context events, expected state, next checks, handoff fields, and outcome fields",
+    }
+    return "; ".join(f"{name}: {description}" for name, description in descriptions.items())
 
 
 def _generate_batch(

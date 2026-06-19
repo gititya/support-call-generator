@@ -1,5 +1,5 @@
 from support_call_generator.export_realtime import export_realtime_support
-from support_call_generator.exporter import EXPORT_BUNDLES, export_reviewed
+from support_call_generator.exporter import EXPORT_BUNDLE_DESCRIPTIONS, EXPORT_BUNDLES, export_reviewed
 from support_call_generator.generator import generate_call
 from support_call_generator.scenarios import SCENARIO_TYPES
 from support_call_generator.storage import list_cases, load_case, save_case, update_review
@@ -8,6 +8,7 @@ __all__ = [
     "__version__",
     "SCENARIO_TYPES",
     "EXPORT_BUNDLES",
+    "EXPORT_BUNDLE_DESCRIPTIONS",
     "export_realtime_support",
     "export_reviewed",
     "generate_call",

@@ -9,7 +9,7 @@ import subprocess
 import streamlit as st
 
 from support_call_generator.export_realtime import export_realtime_support
-from support_call_generator.exporter import EXPORT_BUNDLES, export_reviewed
+from support_call_generator.exporter import EXPORT_BUNDLE_DESCRIPTIONS, export_reviewed
 from support_call_generator.generator import generate_call
 from support_call_generator.profiles import PROFILE_NAMES
 from support_call_generator.scenarios import SCENARIO_TYPES
@@ -77,17 +77,20 @@ if st.sidebar.button("Start fresh run", use_container_width=True):
     st.session_state["pending_cases_dir"] = str(fresh_dir)
     st.rerun()
 
-generation_provider = st.sidebar.selectbox("LLM provider", ["openai", "anthropic"])
+generation_provider = st.sidebar.selectbox("Generation mode", ["offline", "openai", "anthropic"])
 
 if st.sidebar.button("Generate", type="primary", use_container_width=True):
-    if generation_provider == "anthropic":
+    api_key = "offline"
+    if generation_provider == "offline":
+        os.environ.pop("SCG_PROVIDER", None)
+    elif generation_provider == "anthropic":
         api_key = anthropic_key_from_keychain()
         if not api_key:
             st.sidebar.error("Anthropic key unavailable. Set ANTHROPIC_API_KEY or add Keychain service: Anthropic:api.")
         else:
             os.environ["ANTHROPIC_API_KEY"] = api_key
             os.environ["SCG_PROVIDER"] = "anthropic"
-    else:
+    elif generation_provider == "openai":
         api_key = openai_key_from_keychain()
         if not api_key:
             st.sidebar.error("OpenAI key unavailable. Expected Keychain service: OpenAI:voice.")
@@ -100,7 +103,11 @@ if st.sidebar.button("Generate", type="primary", use_container_width=True):
         with st.spinner(f"Generating {generation_count} with {generation_provider}..."):
             for _ in range(int(generation_count)):
                 scenario = generation_scenario if generation_scenario != "random" else random.choice(SCENARIO_TYPES)
-                case = generate_call(scenario_type=scenario, use_llm=True, profile=selected_profile)
+                case = generate_call(
+                    scenario_type=scenario,
+                    use_llm=False if generation_provider == "offline" else True,
+                    profile=selected_profile,
+                )
                 save_case(case, cases_dir=cases_dir)
                 generated.append(case["case_id"])
         st.toast(f"Generated {len(generated)} call{'s' if len(generated) != 1 else ''}")
@@ -108,18 +115,30 @@ if st.sidebar.button("Generate", type="primary", use_container_width=True):
 
 st.sidebar.divider()
 st.sidebar.subheader("Export")
+bundle_options = {
+    "Review pack": "review_pack",
+    "Transcripts only": "transcripts_only",
+    "Eval pack": "eval_pack",
+    "Support-process fixture": "process_fixture",
+}
 export_bundle = st.sidebar.selectbox(
     "Bundle",
-    ["review_pack", "transcripts_only", "eval_pack", "process_fixture"],
-    help="Review pack is the best default for sharing generated calls without exposing hidden truth.",
+    list(bundle_options),
+    help="Choose how much data the consuming repo needs.",
 )
+export_bundle_value = bundle_options[export_bundle]
+bundle_help = {
+    **EXPORT_BUNDLE_DESCRIPTIONS,
+    "process_fixture": "Transcript plus context events, expected state by turn, next checks, handoff fields, and outcome fields.",
+}
+st.sidebar.caption(bundle_help[export_bundle_value])
 export_status = st.sidebar.selectbox("Export status", ["accepted", "all", "draft", "rejected"])
 export_dir = Path(st.sidebar.text_input("Export directory", value="exports/latest"))
 if st.sidebar.button("Export bundle", use_container_width=True):
-    if export_bundle == "process_fixture":
+    if export_bundle_value == "process_fixture":
         result = export_realtime_support(cases_dir=cases_dir, export_dir=export_dir, status=export_status)
     else:
-        result = export_reviewed(cases_dir=cases_dir, export_dir=export_dir, status=export_status, bundle=export_bundle)
+        result = export_reviewed(cases_dir=cases_dir, export_dir=export_dir, status=export_status, bundle=export_bundle_value)
     st.sidebar.success(f"Exported {result['exported']} cases to {export_dir}")
 
 st.sidebar.divider()
