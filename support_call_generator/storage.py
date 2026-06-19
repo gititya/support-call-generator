@@ -18,6 +18,12 @@ def save_case(case: dict[str, Any], cases_dir: Path = CASES_DIR) -> Path:
     (case_dir / "transcript.md").write_text(case["transcript_md"], encoding="utf-8")
     _write_json(case_dir / "ground_truth.json", case["ground_truth"])
     _write_json(case_dir / "expected_timeline.json", case["expected_timeline"])
+    if case.get("context_events"):
+        _write_json(case_dir / "context_events.json", case["context_events"])
+    if case.get("expected_by_turn"):
+        _write_json(case_dir / "expected_by_turn.json", case["expected_by_turn"])
+    if case.get("intent_tags") is not None:
+        _write_json(case_dir / "intent_tags.json", case["intent_tags"])
     _write_json(case_dir / "leakage_report.json", case["leakage_report"])
     _write_json(case_dir / "review.json", case["review"])
 
@@ -27,6 +33,9 @@ def save_case(case: dict[str, Any], cases_dir: Path = CASES_DIR) -> Path:
 def load_case(case_id: str, cases_dir: Path = CASES_DIR) -> dict[str, Any]:
     case_dir = cases_dir / case_id
     leakage_path = case_dir / "leakage_report.json"
+    context_path = case_dir / "context_events.json"
+    state_path = case_dir / "expected_by_turn.json"
+    tags_path = case_dir / "intent_tags.json"
     return {
         "case_id": case_id,
         "scenario_spec": _read_json(case_dir / "scenario_spec.json"),
@@ -34,6 +43,9 @@ def load_case(case_id: str, cases_dir: Path = CASES_DIR) -> dict[str, Any]:
         "transcript_md": (case_dir / "transcript.md").read_text(encoding="utf-8"),
         "ground_truth": _read_json(case_dir / "ground_truth.json"),
         "expected_timeline": _read_json(case_dir / "expected_timeline.json"),
+        "context_events": _read_json(context_path) if context_path.exists() else [],
+        "expected_by_turn": _read_json(state_path) if state_path.exists() else [],
+        "intent_tags": _read_json(tags_path) if tags_path.exists() else [],
         "leakage_report": _read_json(leakage_path) if leakage_path.exists() else {"status": "UNKNOWN", "failures": [], "warnings": []},
         "review": _read_json(case_dir / "review.json"),
     }

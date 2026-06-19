@@ -236,6 +236,7 @@ def build_scenario_spec(
     scenario_type: str,
     seed: int,
     root_cause_counts: dict[str, int] | None = None,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     if scenario_type not in SCENARIO_TYPES:
         raise ValueError(f"Unknown scenario '{scenario_type}'. Expected one of: {', '.join(SCENARIO_TYPES)}")
@@ -254,7 +255,7 @@ def build_scenario_spec(
     }
     stressors = _build_stressors(base, rng)
 
-    return {
+    spec = {
         "scenario_type": scenario_type,
         "hidden_root_cause": base["hidden_root_cause"],
         "customer_persona": persona,
@@ -281,6 +282,12 @@ def build_scenario_spec(
         "customer_unreliability": _build_customer_unreliability(rng),
         "final_outcome": base["final_outcome"],
     }
+
+    if profile:
+        from support_call_generator.profiles import apply_profile
+        apply_profile(spec, profile, rng)
+
+    return spec
 
 
 def _choose_base(scenario_type: str, rng: random.Random, root_cause_counts: dict[str, int]) -> dict[str, Any]:
