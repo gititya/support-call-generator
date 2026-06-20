@@ -91,6 +91,8 @@ def main() -> None:
                 cases_dir=Path(args.cases_dir),
                 export_dir=Path(args.export_dir),
                 status="all",
+                collection_name="process_fixture",
+                envelope_name="process_fixture_envelope.json",
             )
         else:
             result = export_reviewed(

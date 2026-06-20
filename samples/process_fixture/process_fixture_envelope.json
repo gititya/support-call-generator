@@ -1,0 +1,1468 @@
+{
+  "schema_version": "support_process_fixture.v1",
+  "generated_at": "2026-06-20T09:00:30.390999+00:00",
+  "status_filter": "all",
+  "case_count": 2,
+  "cases": [
+    {
+      "schema_version": "support_process_fixture.v1",
+      "case_id": "call_0b087eebe6",
+      "title": "onboarding migration: The migration problem is caused by partial export scope.",
+      "scenario": "onboarding_migration",
+      "difficulty_profile": "hard",
+      "transcript_turns": [
+        {
+          "speaker": "customer",
+          "text": "I'm not totally sure what's going on, but something broke. customer reports symptoms consistent with more than one migration issue.",
+          "turn": 1
+        },
+        {
+          "speaker": "agent",
+          "text": "Okay, I can check a few things with you. When did this first start?",
+          "turn": 2
+        },
+        {
+          "speaker": "customer",
+          "text": "the issue began after a recent operational change",
+          "turn": 3
+        },
+        {
+          "speaker": "agent",
+          "text": "That points me toward timezone conversion, but I want to keep this tentative. What changed right before the issue started?",
+          "turn": 4
+        },
+        {
+          "speaker": "customer",
+          "text": "The confusing part is this: An early symptom seems to support timezone conversion, but later evidence weakens it.",
+          "turn": 5
+        },
+        {
+          "speaker": "agent",
+          "text": "Let's test timezone conversion first. If that fits, we should see the same behavior on a known-good example.",
+          "turn": 6
+        },
+        {
+          "speaker": "customer",
+          "text": "We checked one example and it seemed to fit, but then another example did not. customer reports symptoms consistent with more than one migration issue, but at least one comparison case behaves differently.",
+          "turn": 7
+        },
+        {
+          "speaker": "agent",
+          "text": "That weakens timezone conversion. I am going to abandon that path for now and check partial import.",
+          "turn": 8
+        },
+        {
+          "speaker": "customer",
+          "text": "partial import happened to us once before, so that sounds plausible, but the symptoms are not exactly the same.",
+          "turn": 9
+        },
+        {
+          "speaker": "agent",
+          "text": "Agreed. partial import is possible, but the evidence is mixed. I need a comparison between a working and blocked case.",
+          "turn": 10
+        },
+        {
+          "speaker": "customer",
+          "text": "One working case has the same visible setup. Also, an admin later mentions partial export scope.",
+          "turn": 11
+        },
+        {
+          "speaker": "agent",
+          "text": "That reverses the direction. The visible setup may not be the control point. I want to inspect the shared configuration boundary.",
+          "turn": 12
+        },
+        {
+          "speaker": "customer",
+          "text": "I just got a note from someone else: a working example differs in one hidden configuration detail. customer has a time-sensitive rollout or business deadline and trust is degrading.",
+          "turn": 13
+        },
+        {
+          "speaker": "agent",
+          "text": "That late detail finally makes the actual path coherent. The likely root cause is: The migration problem is caused by partial export scope.",
+          "turn": 14
+        },
+        {
+          "speaker": "customer",
+          "text": "So the earlier checks were not wasted, but they were pointing at the wrong control point?",
+          "turn": 15
+        },
+        {
+          "speaker": "agent",
+          "text": "Correct. The earlier paths were plausible but abandoned after conflicting evidence. Final outcome: agent identifies partial export scope as the likely operational cause, but certainty depends on the selected resolution type",
+          "turn": 16
+        }
+      ],
+      "context_events": [
+        {
+          "after_turn": 1,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 2,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 3,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 4,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the onboarding migration issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 5,
+          "candidate_branches": [],
+          "description": "An admin shared a late migration detail; verify it against the source export and migration job logs.",
+          "facts": [
+            "admin:late_mention"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [
+            "partial_import"
+          ],
+          "source": "admin_panel",
+          "relevant": true,
+          "next_check": "verify evidence after ruling out partial import",
+          "evidence_summary": "An admin shared a late migration detail; verify it against the source export and migration job logs.",
+          "next_best_action": "Update the case notes with why partial import is less likely, then continue the comparison check."
+        },
+        {
+          "after_turn": 6,
+          "candidate_branches": [],
+          "description": "The migration log contains a warning that should be checked against the affected records.",
+          "facts": [
+            "logs:warning_dismissed"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [
+            "timezone_conversion"
+          ],
+          "source": "migration_log",
+          "relevant": true,
+          "next_check": "verify evidence after ruling out timezone conversion",
+          "evidence_summary": "The migration log contains a warning that should be checked against the affected records.",
+          "next_best_action": "Update the case notes with why timezone conversion is less likely, then continue the comparison check."
+        },
+        {
+          "after_turn": 7,
+          "candidate_branches": [],
+          "description": "A migrated record that worked and a missing record differ in source export settings; compare archive and ownership settings.",
+          "facts": [
+            "comparison:config_differs"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [
+            "duplicate_merge"
+          ],
+          "source": "audit_log",
+          "relevant": true,
+          "next_check": "verify evidence after ruling out duplicate merge",
+          "evidence_summary": "A migrated record that worked and a missing record differ in source export settings; compare archive and ownership settings.",
+          "next_best_action": "Update the case notes with why duplicate merge is less likely, then continue the comparison check."
+        },
+        {
+          "after_turn": 7,
+          "candidate_branches": [],
+          "description": "Scheduled maintenance window affected a staging environment, not production.",
+          "facts": [
+            "incident:staging_maintenance",
+            "environment:staging"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [],
+          "source": "incident_note",
+          "relevant": false,
+          "next_check": "investigate_partial_import",
+          "evidence_summary": "Scheduled maintenance window affected a staging environment, not production.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 7,
+          "candidate_branches": [],
+          "description": "Migration log reports all records as successfully imported, contradicting the missing count.",
+          "facts": [
+            "migration_status:all_imported"
+          ],
+          "is_conflicting": true,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [],
+          "source": "migration_log",
+          "relevant": true,
+          "next_check": "investigate_partial_import",
+          "evidence_summary": "Migration log reports all records as successfully imported, contradicting the missing count.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 8,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the onboarding migration issue.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Compare the working and affected examples, then check the strongest product signal for the onboarding migration issue."
+        },
+        {
+          "after_turn": 9,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the onboarding migration issue.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Compare the working and affected examples, then check the strongest product signal for the onboarding migration issue."
+        },
+        {
+          "after_turn": 10,
+          "candidate_branches": [],
+          "description": "A migrated record that worked and a missing record differ in source export settings; compare archive and ownership settings.",
+          "facts": [
+            "comparison:config_differs"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [],
+          "source": "prior_ticket",
+          "relevant": true,
+          "next_check": "investigate_partial_import",
+          "evidence_summary": "A migrated record that worked and a missing record differ in source export settings; compare archive and ownership settings.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue."
+        },
+        {
+          "after_turn": 11,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+        },
+        {
+          "after_turn": 12,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+        },
+        {
+          "after_turn": 13,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+        },
+        {
+          "after_turn": 14,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+        },
+        {
+          "after_turn": 15,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the onboarding migration issue.",
+          "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+        },
+        {
+          "after_turn": 16,
+          "candidate_branches": [
+            "the_migration_problem_is_caused_by_partial_export"
+          ],
+          "description": "An admin shared a late migration detail; verify it against the source export and migration job logs.",
+          "facts": [
+            "admin:late_mention"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [
+            "late_evidence_points_toward_partial_expo"
+          ],
+          "reveals_final_cause": true,
+          "ruled_out_branches": [],
+          "source": "incident_note",
+          "relevant": true,
+          "final_cause": "the_migration_problem_is_caused_by_partial_export",
+          "next_check": "Verify one more product signal before treating the likely cause as resolved.",
+          "evidence_summary": "An admin shared a late migration detail; verify it against the source export and migration job logs.",
+          "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+        }
+      ],
+      "expected_by_turn": [
+        {
+          "after_turn": 1,
+          "facts": [],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 2,
+          "facts": [],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 3,
+          "facts": [],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 4,
+          "facts": [],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the onboarding migration issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 5,
+          "facts": [
+            "admin:late_mention"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import"
+          ],
+          "next_check": "verify evidence after ruling out partial import",
+          "next_check_contains": [
+            "verify",
+            "evidence",
+            "after"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 6,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion"
+          ],
+          "next_check": "verify evidence after ruling out timezone conversion",
+          "next_check_contains": [
+            "verify",
+            "evidence",
+            "after"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 7,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "investigate_partial_import",
+          "next_check_contains": [
+            "investigate",
+            "partial",
+            "import"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 8,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the onboarding migration issue.",
+          "next_check_contains": [
+            "Compare",
+            "working",
+            "affected"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 9,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the onboarding migration issue.",
+          "next_check_contains": [
+            "Compare",
+            "working",
+            "affected"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 10,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "investigate_partial_import",
+          "next_check_contains": [
+            "investigate",
+            "partial",
+            "import"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 11,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "affected",
+            "record"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 12,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "affected",
+            "record"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 13,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "affected",
+            "record"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 14,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "affected",
+            "record"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 15,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Verify one affected record against the source export before treating the migration cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "affected",
+            "record"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 16,
+          "facts": [
+            "admin:late_mention",
+            "logs:warning_dismissed",
+            "comparison:config_differs",
+            "migration_status:all_imported"
+          ],
+          "unknowns": [],
+          "candidate_branches": [
+            "the_migration_problem_is_caused_by_partial_export"
+          ],
+          "ruled_out_branches": [
+            "partial_import",
+            "timezone_conversion",
+            "duplicate_merge"
+          ],
+          "next_check": "Verify one more product signal before treating the likely cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "product",
+            "signal"
+          ],
+          "final_cause_allowed": true
+        }
+      ],
+      "final_cause": "the_migration_problem_is_caused_by_partial_export",
+      "resolution_type": "probable_cause",
+      "intent_tags": [
+        "conflicting_context",
+        "customer_correction",
+        "irrelevant_context_filtering",
+        "late_evidence_reveal"
+      ],
+      "expected_outcome": "probable_cause",
+      "safe_customer_summary": "The likely cause is The migration problem is caused by partial export scope.. Support should verify the remaining product evidence before treating it as fully resolved.",
+      "customer_safe_summary": "The likely cause is The migration problem is caused by partial export scope.. Support should verify the remaining product evidence before treating it as fully resolved.",
+      "evidence_summary": "An admin shared a late migration detail; verify it against the source export and migration job logs.",
+      "next_best_action": "Verify one affected record against the source export before treating the migration cause as resolved."
+    },
+    {
+      "schema_version": "support_process_fixture.v1",
+      "case_id": "call_d0788fccd5",
+      "title": "permissions access: Migrated workspace groups did not inherit the Billing Analyst role.",
+      "scenario": "permissions_access",
+      "difficulty_profile": "hard",
+      "transcript_turns": [
+        {
+          "speaker": "customer",
+          "text": "I'm not totally sure what's going on, but something broke. multiple users are affected.",
+          "turn": 1
+        },
+        {
+          "speaker": "agent",
+          "text": "I need to follow the standard checklist before we discuss escalation. When did this first start?",
+          "turn": 2
+        },
+        {
+          "speaker": "customer",
+          "text": "the problem started after a workspace migration",
+          "turn": 3
+        },
+        {
+          "speaker": "agent",
+          "text": "That points me toward browser cache, but I want to keep this tentative. What changed right before the issue started?",
+          "turn": 4
+        },
+        {
+          "speaker": "customer",
+          "text": "The confusing part is this: An early symptom seems to support browser cache, but later evidence weakens it.",
+          "turn": 5
+        },
+        {
+          "speaker": "agent",
+          "text": "Let's test browser cache first. If that fits, we should see the same behavior on a known-good example.",
+          "turn": 6
+        },
+        {
+          "speaker": "customer",
+          "text": "We checked one example and it seemed to fit, but then another example did not. multiple users are affected, but admins can still access the workspace.",
+          "turn": 7
+        },
+        {
+          "speaker": "agent",
+          "text": "That weakens browser cache. I am going to abandon that path for now and check password reset.",
+          "turn": 8
+        },
+        {
+          "speaker": "customer",
+          "text": "password reset happened to us once before, so that sounds plausible, but the symptoms are not exactly the same.",
+          "turn": 9
+        },
+        {
+          "speaker": "agent",
+          "text": "Agreed. password reset is possible, but the evidence is mixed. I need a comparison between a working and blocked case.",
+          "turn": 10
+        },
+        {
+          "speaker": "customer",
+          "text": "One working case has the same visible setup. Also, all affected users belong to the Billing Analyst group.",
+          "turn": 11
+        },
+        {
+          "speaker": "agent",
+          "text": "That reverses the direction. The visible setup may not be the control point. I want to inspect the shared configuration boundary.",
+          "turn": 12
+        },
+        {
+          "speaker": "customer",
+          "text": "I just got a note from someone else: all affected users belong to the Billing Analyst group. customer has a finance deadline in two hours and three analysts are blocked.",
+          "turn": 13
+        },
+        {
+          "speaker": "agent",
+          "text": "That late detail finally makes the actual path coherent. The likely root cause is: Migrated workspace groups did not inherit the Billing Analyst role.",
+          "turn": 14
+        },
+        {
+          "speaker": "customer",
+          "text": "So the earlier checks were not wasted, but they were pointing at the wrong control point?",
+          "turn": 15
+        },
+        {
+          "speaker": "agent",
+          "text": "Correct. The earlier paths were plausible but abandoned after conflicting evidence. Final outcome: agent identifies missing group role mapping and restores access",
+          "turn": 16
+        }
+      ],
+      "context_events": [
+        {
+          "after_turn": 1,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the permissions access issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the permissions access issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the permissions access issue."
+        },
+        {
+          "after_turn": 2,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the permissions access issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the permissions access issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the permissions access issue."
+        },
+        {
+          "after_turn": 3,
+          "candidate_branches": [],
+          "description": "all affected users belong to the Billing Analyst group",
+          "facts": [
+            "group:billing_analyst"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [
+            "password_reset"
+          ],
+          "source": "admin_panel",
+          "relevant": true,
+          "next_check": "verify evidence after ruling out password reset",
+          "evidence_summary": "all affected users belong to the Billing Analyst group",
+          "next_best_action": "Update the case notes with why password reset is less likely, then continue the comparison check."
+        },
+        {
+          "after_turn": 4,
+          "source": "support_process_guidance",
+          "description": "No new system evidence yet; the agent should gather a working and affected example for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the permissions access issue.",
+          "evidence_summary": "No new system evidence yet; the agent should gather a working and affected example for the permissions access issue.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the permissions access issue."
+        },
+        {
+          "after_turn": 5,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue."
+        },
+        {
+          "after_turn": 6,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue."
+        },
+        {
+          "after_turn": 7,
+          "candidate_branches": [],
+          "description": "Audit log shows the affected role was last modified 6 months ago, suggesting no recent change.",
+          "facts": [
+            "role_modified:6_months_ago"
+          ],
+          "is_conflicting": true,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [],
+          "source": "audit_log",
+          "relevant": true,
+          "next_check": "investigate_password_reset",
+          "evidence_summary": "Audit log shows the affected role was last modified 6 months ago, suggesting no recent change.",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the permissions access issue."
+        },
+        {
+          "after_turn": 7,
+          "candidate_branches": [],
+          "description": "the migration completed last night",
+          "facts": [
+            "migration:completed"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [
+            "browser_cache"
+          ],
+          "source": "identity_provider",
+          "relevant": true,
+          "next_check": "verify evidence after ruling out browser cache",
+          "evidence_summary": "the migration completed last night",
+          "next_best_action": "Update the case notes with why browser cache is less likely, then continue the comparison check."
+        },
+        {
+          "after_turn": 8,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue."
+        },
+        {
+          "after_turn": 9,
+          "candidate_branches": [],
+          "description": "one manually invited user can access the workspace",
+          "facts": [
+            "manual_invite:works"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [
+            "expired_invitations"
+          ],
+          "source": "audit_log",
+          "relevant": true,
+          "next_check": "verify evidence after ruling out expired invitations",
+          "evidence_summary": "one manually invited user can access the workspace",
+          "next_best_action": "Update the case notes with why expired invitations is less likely, then continue the comparison check."
+        },
+        {
+          "after_turn": 10,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        },
+        {
+          "after_turn": 11,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        },
+        {
+          "after_turn": 12,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        },
+        {
+          "after_turn": 13,
+          "candidate_branches": [],
+          "description": "all affected users belong to the Billing Analyst group",
+          "facts": [
+            "group:billing_analyst"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [],
+          "reveals_final_cause": false,
+          "ruled_out_branches": [],
+          "source": "incident_note",
+          "relevant": true,
+          "next_check": "investigate_password_reset",
+          "evidence_summary": "all affected users belong to the Billing Analyst group",
+          "next_best_action": "Ask what changed recently and collect one working example and one affected example for the permissions access issue."
+        },
+        {
+          "after_turn": 13,
+          "candidate_branches": [
+            "migrated_workspace_groups_did_not_inherit_the_billing"
+          ],
+          "description": "the migration completed last night",
+          "facts": [
+            "migration:completed"
+          ],
+          "is_conflicting": false,
+          "resolved_unknowns": [
+            "team_learns_affected_users_share_a_migra"
+          ],
+          "reveals_final_cause": true,
+          "ruled_out_branches": [],
+          "source": "prior_ticket",
+          "relevant": true,
+          "final_cause": "migrated_workspace_groups_did_not_inherit_the_billing",
+          "next_check": "Verify one more product signal before treating the likely cause as resolved.",
+          "evidence_summary": "the migration completed last night",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        },
+        {
+          "after_turn": 14,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        },
+        {
+          "after_turn": 15,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        },
+        {
+          "after_turn": 16,
+          "source": "support_process_guidance",
+          "description": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "facts": [],
+          "resolved_unknowns": [],
+          "ruled_out_branches": [],
+          "candidate_branches": [],
+          "relevant": true,
+          "is_conflicting": false,
+          "reveals_final_cause": false,
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "evidence_summary": "No new system evidence at this turn; continue comparing product signals for the permissions access issue.",
+          "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+        }
+      ],
+      "expected_by_turn": [
+        {
+          "after_turn": 1,
+          "facts": [],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the permissions access issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 2,
+          "facts": [],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the permissions access issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 3,
+          "facts": [
+            "group:billing_analyst"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset"
+          ],
+          "next_check": "verify evidence after ruling out password reset",
+          "next_check_contains": [
+            "verify",
+            "evidence",
+            "after"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 4,
+          "facts": [
+            "group:billing_analyst"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset"
+          ],
+          "next_check": "Ask what changed recently and collect one working example and one affected example for the permissions access issue.",
+          "next_check_contains": [
+            "what",
+            "changed",
+            "recently"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 5,
+          "facts": [
+            "group:billing_analyst"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset"
+          ],
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue.",
+          "next_check_contains": [
+            "Compare",
+            "working",
+            "affected"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 6,
+          "facts": [
+            "group:billing_analyst"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset"
+          ],
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue.",
+          "next_check_contains": [
+            "Compare",
+            "working",
+            "affected"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 7,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache"
+          ],
+          "next_check": "verify evidence after ruling out browser cache",
+          "next_check_contains": [
+            "verify",
+            "evidence",
+            "after"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 8,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache"
+          ],
+          "next_check": "Compare the working and affected examples, then check the strongest product signal for the permissions access issue.",
+          "next_check_contains": [
+            "Compare",
+            "working",
+            "affected"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 9,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "verify evidence after ruling out expired invitations",
+          "next_check_contains": [
+            "verify",
+            "evidence",
+            "after"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 10,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "next_check_contains": [
+            "Compare",
+            "blocked",
+            "user"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 11,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "next_check_contains": [
+            "Compare",
+            "blocked",
+            "user"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 12,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "next_check_contains": [
+            "Compare",
+            "blocked",
+            "user"
+          ],
+          "final_cause_allowed": false
+        },
+        {
+          "after_turn": 13,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [
+            "migrated_workspace_groups_did_not_inherit_the_billing"
+          ],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Verify one more product signal before treating the likely cause as resolved.",
+          "next_check_contains": [
+            "Verify",
+            "product",
+            "signal"
+          ],
+          "final_cause_allowed": true
+        },
+        {
+          "after_turn": 14,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [
+            "migrated_workspace_groups_did_not_inherit_the_billing"
+          ],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "next_check_contains": [
+            "Compare",
+            "blocked",
+            "user"
+          ],
+          "final_cause_allowed": true
+        },
+        {
+          "after_turn": 15,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [
+            "migrated_workspace_groups_did_not_inherit_the_billing"
+          ],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "next_check_contains": [
+            "Compare",
+            "blocked",
+            "user"
+          ],
+          "final_cause_allowed": true
+        },
+        {
+          "after_turn": 16,
+          "facts": [
+            "group:billing_analyst",
+            "role_modified:6_months_ago",
+            "migration:completed",
+            "manual_invite:works"
+          ],
+          "unknowns": [],
+          "candidate_branches": [
+            "migrated_workspace_groups_did_not_inherit_the_billing"
+          ],
+          "ruled_out_branches": [
+            "password_reset",
+            "browser_cache",
+            "expired_invitations"
+          ],
+          "next_check": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+          "next_check_contains": [
+            "Compare",
+            "blocked",
+            "user"
+          ],
+          "final_cause_allowed": true
+        }
+      ],
+      "final_cause": "migrated_workspace_groups_did_not_inherit_the_billing",
+      "resolution_type": "probable_cause",
+      "intent_tags": [
+        "conflicting_context",
+        "customer_correction",
+        "late_evidence_reveal"
+      ],
+      "expected_outcome": "probable_cause",
+      "safe_customer_summary": "The likely cause is Migrated workspace groups did not inherit the Billing Analyst role.. Support should verify the remaining product evidence before treating it as fully resolved.",
+      "customer_safe_summary": "The likely cause is Migrated workspace groups did not inherit the Billing Analyst role.. Support should verify the remaining product evidence before treating it as fully resolved.",
+      "evidence_summary": "the migration completed last night",
+      "next_best_action": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved."
+    }
+  ]
+}

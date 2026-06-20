@@ -1,0 +1,3 @@
+case_id,status,scenario_type,customer_mood,customer_clarity,customer_patience,technical_skill,agent_quality,difficulty,resolution_type,root_cause_category,leakage_status,sensitivity_level,escalation_risk,model_name,generation_mode,notes
+call_1f9487c459,draft,onboarding_migration,confused,scattered,high,low,overly_rigid,hard,resolved,onboarding_migration,PASS,low,low,offline-template,offline,
+call_e4d690a568,draft,permissions_access,frustrated,clear,high,medium,average,hard,probable_cause,permissions_access,PASS,medium,low,offline-template,offline,

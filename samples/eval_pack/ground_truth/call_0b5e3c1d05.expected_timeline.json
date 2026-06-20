@@ -1,0 +1,57 @@
+[
+  {
+    "confidence": 0.35,
+    "evidence": [
+      "customer reports symptoms consistent with more than one access issue"
+    ],
+    "hypothesis": "customer reports a access issue",
+    "state": "activate",
+    "turn": 1
+  },
+  {
+    "confidence": 0.55,
+    "evidence": [
+      "An early symptom seems to support browser cache, but later evidence weakens it."
+    ],
+    "hypothesis": "browser cache",
+    "state": "strengthen",
+    "turn": 4
+  },
+  {
+    "confidence": 0.15,
+    "evidence": [
+      "customer reports symptoms consistent with more than one access issue, but at least one comparison case behaves differently."
+    ],
+    "hypothesis": "browser cache",
+    "state": "discard",
+    "turn": 8
+  },
+  {
+    "confidence": 0.3,
+    "evidence": [
+      "comparison case does not fit the second false lead"
+    ],
+    "hypothesis": "expired invitation",
+    "state": "weaken",
+    "turn": 10
+  },
+  {
+    "confidence": 0.55,
+    "evidence": [
+      "an admin later mentions direct assignment conflict"
+    ],
+    "hypothesis": "The access failure is caused by direct assignment conflict.",
+    "state": "activate",
+    "turn": 12
+  },
+  {
+    "confidence": 0.9,
+    "evidence": [
+      "a working example differs in one hidden configuration detail",
+      "agent identifies direct assignment conflict as the likely operational cause, but certainty depends on the selected resolution type"
+    ],
+    "hypothesis": "The access failure is caused by direct assignment conflict.",
+    "state": "confirm",
+    "turn": 14
+  }
+]

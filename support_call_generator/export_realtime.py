@@ -25,8 +25,10 @@ def export_realtime_support(
     cases_dir: Path = CASES_DIR,
     export_dir: Path = EXPORT_DIR,
     status: str = "accepted",
+    collection_name: str = "realtime_support",
+    envelope_name: str = "realtime_support_envelope.json",
 ) -> dict[str, int]:
-    out_dir = export_dir / "realtime_support"
+    out_dir = export_dir / collection_name
     if out_dir.exists():
         import shutil
         shutil.rmtree(out_dir)
@@ -54,7 +56,7 @@ def export_realtime_support(
         "case_count": len(fixtures),
         "cases": fixtures,
     }
-    (export_dir / "realtime_support_envelope.json").write_text(
+    (export_dir / envelope_name).write_text(
         json.dumps(envelope, indent=2) + "\n", encoding="utf-8",
     )
     return {"exported": exported}

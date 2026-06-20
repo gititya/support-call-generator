@@ -1,0 +1,11 @@
+{
+  "categories": [
+    "simulated_account_context",
+    "simulated_business_impact",
+    "simulated_operational_migration_context"
+  ],
+  "contains_real_pii": false,
+  "handling_note": "Synthetic fixture data. Safe for local evaluation, but treat as customer-like operational content in logs and demos.",
+  "sensitivity_level": "low",
+  "synthetic_only": true
+}

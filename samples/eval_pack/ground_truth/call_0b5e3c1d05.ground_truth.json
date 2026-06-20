@@ -1,0 +1,87 @@
+{
+  "abandoned_troubleshooting_paths": [
+    "The agent spends several turns checking browser cache before abandoning it.",
+    "The customer suggests expired invitation because it happened in a previous incident, but it does not fit the current evidence."
+  ],
+  "actual_root_cause": "The access failure is caused by direct assignment conflict.",
+  "best_diagnostic_questions": [
+    "Which users or records are affected, and what do they have in common?",
+    "What changed immediately before the issue started?",
+    "Can we compare one working example with one blocked example?",
+    "Is this failing for a role, group, workspace, or integration boundary?",
+    "What evidence would disprove the current leading hypothesis?"
+  ],
+  "confidence": 0.92,
+  "conflicting_observations": [
+    "customer reports symptoms consistent with more than one access issue, but at least one comparison case behaves differently.",
+    "a working example differs in one hidden configuration detail, while another affected example points away from the same branch."
+  ],
+  "difficulty_metadata": {
+    "ambiguity_score": 4,
+    "difficulty": "hard",
+    "leakage_score": 4,
+    "realism_score": 3
+  },
+  "doctrine_adherence": {
+    "information_asymmetry": "Customer, agent, and admin details arrive at different times.",
+    "leakage_controls": [
+      "The customer does not state the hidden root cause directly.",
+      "Late facts explain the answer only after false leads are weakened.",
+      "The agent abandons plausible paths before confirming the answer."
+    ],
+    "non_perfect_troubleshooting": "The agent tests two plausible wrong paths before the correct operational boundary becomes clear.",
+    "uncertainty_pressure": "The call keeps multiple explanations alive before narrowing."
+  },
+  "escalation_timeline": [
+    {
+      "moment": "customer has a time-sensitive rollout or business deadline and trust is degrading",
+      "turn": 7,
+      "type": "escalation"
+    },
+    {
+      "moment": "agent nearly overcommits to a weak path",
+      "turn": 10,
+      "type": "missed_opportunity"
+    }
+  ],
+  "escalation_trigger": "customer has a time-sensitive rollout or business deadline and trust is degrading",
+  "false_leads": [
+    "browser cache",
+    "expired invitation"
+  ],
+  "final_outcome": "agent identifies direct assignment conflict as the likely operational cause, but certainty depends on the selected resolution type",
+  "hypothesis_reversals": [
+    "The likely explanation shifts away from browser cache after a delayed fact appears.",
+    "A hypothesis that looked unlikely becomes plausible only after this late fact: a working example differs in one hidden configuration detail."
+  ],
+  "issue_path": [
+    "customer reports a access issue",
+    "agent tests two plausible but wrong branches",
+    "late evidence points toward direct assignment conflict",
+    "call ends according to the selected resolution type"
+  ],
+  "key_evidence": [
+    "the issue began after a recent operational change",
+    "an admin later mentions direct assignment conflict"
+  ],
+  "late_reveal_facts": [
+    "a working example differs in one hidden configuration detail",
+    "logs show a warning that was initially dismissed"
+  ],
+  "misleading_evidence": [
+    "An early symptom seems to support browser cache, but later evidence weakens it.",
+    "A customer-provided detail sounds decisive at first, but turns out to describe a separate condition: at least one comparison case behaves differently."
+  ],
+  "resolution_type": "resolved",
+  "root_cause_category": "permissions_access",
+  "why_difficult": [
+    "early evidence supports the wrong branch",
+    "customer corrects the timeline after the agent has already tested a dead end",
+    "the late fact changes the operational boundary"
+  ],
+  "wrong_paths": [
+    "browser cache",
+    "license limit",
+    "expired invitation"
+  ]
+}

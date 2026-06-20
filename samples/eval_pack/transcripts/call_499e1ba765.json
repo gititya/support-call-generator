@@ -1,0 +1,85 @@
+{
+  "summary": "Synthetic support interaction with misleading evidence, abandoned paths, conflicting observations, a hypothesis reversal, and a late root-cause reveal.",
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "I need help with something odd. migration completed with no fatal errors.",
+      "turn": 1
+    },
+    {
+      "speaker": "agent",
+      "text": "I need to follow the standard checklist before we discuss escalation. When did this first start?",
+      "turn": 2
+    },
+    {
+      "speaker": "customer",
+      "text": "projects are visible",
+      "turn": 3
+    },
+    {
+      "speaker": "agent",
+      "text": "That points me toward partial data import, but I want to keep this tentative. What changed right before the issue started?",
+      "turn": 4
+    },
+    {
+      "speaker": "customer",
+      "text": "The confusing part is this: An early symptom seems to support partial data import, but later evidence weakens it.",
+      "turn": 5
+    },
+    {
+      "speaker": "agent",
+      "text": "Let's test partial data import first. If that fits, we should see the same behavior on a known-good example.",
+      "turn": 6
+    },
+    {
+      "speaker": "customer",
+      "text": "We checked one example and it seemed to fit, but then another example did not. migration completed with no fatal errors, but owners cannot edit migrated records.",
+      "turn": 7
+    },
+    {
+      "speaker": "agent",
+      "text": "That weakens partial data import. I am going to abandon that path for now and check workspace storage limit.",
+      "turn": 8
+    },
+    {
+      "speaker": "customer",
+      "text": "workspace storage limit happened to us once before, so that sounds plausible, but the symptoms are not exactly the same.",
+      "turn": 9
+    },
+    {
+      "speaker": "agent",
+      "text": "Agreed. workspace storage limit is possible, but the evidence is mixed. I need a comparison between a working and blocked case.",
+      "turn": 10
+    },
+    {
+      "speaker": "customer",
+      "text": "One working case has the same visible setup. Also, a custom legacy owner role existed.",
+      "turn": 11
+    },
+    {
+      "speaker": "agent",
+      "text": "That reverses the direction. The visible setup may not be the control point. I want to inspect the shared configuration boundary.",
+      "turn": 12
+    },
+    {
+      "speaker": "customer",
+      "text": "I just got a note from someone else: migration logs show fallback role mapping. customer has an onboarding review with executives tomorrow.",
+      "turn": 13
+    },
+    {
+      "speaker": "agent",
+      "text": "That late detail finally makes the actual path coherent. The likely root cause is: Legacy project owners were mapped to viewers during import.",
+      "turn": 14
+    },
+    {
+      "speaker": "customer",
+      "text": "So the earlier checks were not wasted, but they were pointing at the wrong control point?",
+      "turn": 15
+    },
+    {
+      "speaker": "agent",
+      "text": "Correct. The earlier paths were plausible but abandoned after conflicting evidence. Final outcome: agent finds custom legacy role mapping error and schedules corrected reimport",
+      "turn": 16
+    }
+  ]
+}

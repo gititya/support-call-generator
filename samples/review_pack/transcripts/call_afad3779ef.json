@@ -1,0 +1,85 @@
+{
+  "summary": "Synthetic support interaction with misleading evidence, abandoned paths, conflicting observations, a hypothesis reversal, and a late root-cause reveal.",
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "I'm worried we're going to miss our deadline. multiple users are affected.",
+      "turn": 1
+    },
+    {
+      "speaker": "agent",
+      "text": "Let's separate what we know from what we still need to verify. When did this first start?",
+      "turn": 2
+    },
+    {
+      "speaker": "customer",
+      "text": "the problem started after a workspace migration",
+      "turn": 3
+    },
+    {
+      "speaker": "agent",
+      "text": "That points me toward password reset, but I want to keep this tentative. What changed right before the issue started?",
+      "turn": 4
+    },
+    {
+      "speaker": "customer",
+      "text": "The confusing part is this: An early symptom seems to support password reset, but later evidence weakens it.",
+      "turn": 5
+    },
+    {
+      "speaker": "agent",
+      "text": "Let's test password reset first. If that fits, we should see the same behavior on a known-good example.",
+      "turn": 6
+    },
+    {
+      "speaker": "customer",
+      "text": "We checked one example and it seemed to fit, but then another example did not. multiple users are affected, but admins can still access the workspace.",
+      "turn": 7
+    },
+    {
+      "speaker": "agent",
+      "text": "That weakens password reset. I am going to abandon that path for now and check expired invitations.",
+      "turn": 8
+    },
+    {
+      "speaker": "customer",
+      "text": "expired invitations happened to us once before, so that sounds plausible, but the symptoms are not exactly the same.",
+      "turn": 9
+    },
+    {
+      "speaker": "agent",
+      "text": "Agreed. expired invitations is possible, but the evidence is mixed. I need a comparison between a working and blocked case.",
+      "turn": 10
+    },
+    {
+      "speaker": "customer",
+      "text": "One working case has the same visible setup. Also, all affected users belong to the Billing Analyst group.",
+      "turn": 11
+    },
+    {
+      "speaker": "agent",
+      "text": "That reverses the direction. The visible setup may not be the control point. I want to inspect the shared configuration boundary.",
+      "turn": 12
+    },
+    {
+      "speaker": "customer",
+      "text": "I just got a note from someone else: the migration completed last night. customer has a finance deadline in two hours and three analysts are blocked.",
+      "turn": 13
+    },
+    {
+      "speaker": "agent",
+      "text": "That late detail finally makes the actual path coherent. The likely root cause is: Migrated workspace groups did not inherit the Billing Analyst role.",
+      "turn": 14
+    },
+    {
+      "speaker": "customer",
+      "text": "So the earlier checks were not wasted, but they were pointing at the wrong control point?",
+      "turn": 15
+    },
+    {
+      "speaker": "agent",
+      "text": "Correct. The earlier paths were plausible but abandoned after conflicting evidence. Final outcome: agent identifies missing group role mapping and restores access",
+      "turn": 16
+    }
+  ]
+}

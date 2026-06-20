@@ -63,6 +63,8 @@ if "cases_dir" not in st.session_state:
     st.session_state["cases_dir"] = str(default_cases_dir())
 if "pending_cases_dir" in st.session_state:
     st.session_state["cases_dir"] = st.session_state.pop("pending_cases_dir")
+if "last_export" not in st.session_state:
+    st.session_state["last_export"] = None
 
 cases_dir = Path(st.sidebar.text_input("Cases directory", key="cases_dir"))
 
@@ -136,9 +138,22 @@ export_status = st.sidebar.selectbox("Export status", ["accepted", "all", "draft
 export_dir = Path(st.sidebar.text_input("Export directory", value="exports/latest"))
 if st.sidebar.button("Export bundle", use_container_width=True):
     if export_bundle_value == "process_fixture":
-        result = export_realtime_support(cases_dir=cases_dir, export_dir=export_dir, status=export_status)
+        result = export_realtime_support(
+            cases_dir=cases_dir,
+            export_dir=export_dir,
+            status=export_status,
+            collection_name="process_fixture",
+            envelope_name="process_fixture_envelope.json",
+        )
     else:
         result = export_reviewed(cases_dir=cases_dir, export_dir=export_dir, status=export_status, bundle=export_bundle_value)
+    st.session_state["last_export"] = {
+        "bundle_label": export_bundle,
+        "bundle": export_bundle_value,
+        "count": result["exported"],
+        "path": str(export_dir),
+        "description": bundle_help[export_bundle_value],
+    }
     st.sidebar.success(f"Exported {result['exported']} cases to {export_dir}")
 
 st.sidebar.divider()
@@ -165,6 +180,15 @@ st.sidebar.metric("Generated calls", len(cases))
 st.sidebar.caption(f"{len(filtered)} calls match the current filters")
 
 st.caption(f"Viewing generated calls from `{cases_dir}`")
+
+if st.session_state["last_export"]:
+    last_export = st.session_state["last_export"]
+    with st.expander("Latest export", expanded=True):
+        st.write(f"**Bundle:** {last_export['bundle_label']}")
+        st.write(f"**Cases:** {last_export['count']}")
+        st.write(f"**Output folder:** `{last_export['path']}`")
+        st.caption(last_export["description"])
+        st.code(last_export["path"], language="text")
 
 if not filtered:
     if cases:
