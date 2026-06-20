@@ -10,6 +10,14 @@ from support_call_generator.scenarios import SCENARIO_TYPES
 from support_call_generator.storage import save_case, update_review
 from support_call_generator.validator import validate_case
 
+BANNED_SUPPORT_FACING_PHRASES = [
+    "hidden configuration detail",
+    "mechanism evidence",
+    "support-process guidance",
+    "active branches",
+    "presenting likely cause",
+]
+
 
 def test_profile_controls_generation() -> None:
     for profile_name in PROFILE_NAMES:
@@ -197,7 +205,7 @@ def test_realtime_export_probable_cause_preserves_uncertainty(tmp_path) -> None:
     assert "safe_customer_summary" in fixture
     assert "likely cause" in fixture["safe_customer_summary"].lower()
     assert "verify" in fixture["safe_customer_summary"].lower()
-    assert "remaining" in fixture["expected_by_turn"][-1]["next_check"].lower()
+    assert "before treating" in fixture["expected_by_turn"][-1]["next_check"].lower()
 
 
 def test_realtime_export_handoff_has_owner_and_safe_summary(tmp_path) -> None:
@@ -218,7 +226,58 @@ def test_realtime_export_handoff_has_owner_and_safe_summary(tmp_path) -> None:
         assert fixture["handoff_summary"]
         assert fixture["next_owner"]
         assert fixture["safe_customer_summary"]
+        assert fixture["next_best_action"]
         assert fixture["expected_by_turn"][-1]["next_check"]
+
+
+def test_realtime_export_support_facing_language_is_concrete(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    for resolution in ["resolved", "probable_cause", "handoff"]:
+        case = _generate_resolution_case(resolution)
+        save_case(case, cases_dir=cases_dir)
+        update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    for fixture_path in sorted((export_dir / "realtime_support").glob("*.json")):
+        fixture = json.loads(fixture_path.read_text())
+        assert fixture["evidence_summary"]
+        assert fixture["next_best_action"]
+        support_text = " ".join(
+            [
+                fixture.get("safe_customer_summary", ""),
+                fixture.get("customer_safe_summary", ""),
+                fixture.get("evidence_summary", ""),
+                fixture.get("next_best_action", ""),
+                *[event.get("description", "") for event in fixture["context_events"]],
+                *[event.get("next_check", "") for event in fixture["context_events"]],
+            ]
+        ).lower()
+        for phrase in BANNED_SUPPORT_FACING_PHRASES:
+            assert phrase not in support_text
+
+
+def test_realtime_export_next_actions_match_outcomes(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    for resolution in ["resolved", "probable_cause", "escalated"]:
+        case = _generate_resolution_case(resolution)
+        save_case(case, cases_dir=cases_dir)
+        update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    actions = {}
+    for fixture_path in sorted((export_dir / "realtime_support").glob("*.json")):
+        fixture = json.loads(fixture_path.read_text())
+        actions[fixture["expected_outcome"]] = fixture["next_best_action"].lower()
+
+    assert "confirm" in actions["resolved"]
+    assert "before treating" in actions["probable_cause"]
+    assert "engineering" in actions["handoff"] or "product support" in actions["handoff"]
 
 
 def test_realtime_export_expected_outcome(tmp_path) -> None:

@@ -12,6 +12,13 @@ EXPORT_DIR = Path("exports")
 REALTIME_SCHEMA = "support_process_fixture.v1"
 
 _HANDOFF_RESOLUTIONS = {"handoff", "escalated", "unresolved"}
+_BANNED_SUPPORT_FACING_PHRASES = [
+    "hidden configuration detail",
+    "mechanism evidence",
+    "support-process guidance",
+    "active branches",
+    "presenting likely cause",
+]
 
 
 def export_realtime_support(
@@ -71,6 +78,7 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
         case.get("expected_by_turn", []),
         expected_outcome,
         resolution,
+        spec["scenario_type"],
     )
     turn_count = len(case["transcript"]["turns"])
     translated_events = _ensure_turn_guidance_events(
@@ -96,6 +104,9 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
         "intent_tags": case.get("intent_tags", []),
         "expected_outcome": expected_outcome,
         "safe_customer_summary": _build_safe_customer_summary(case, expected_outcome),
+        "customer_safe_summary": _build_safe_customer_summary(case, expected_outcome),
+        "evidence_summary": _build_evidence_summary(translated_events, spec["scenario_type"]),
+        "next_best_action": _top_level_next_best_action(spec["scenario_type"], expected_outcome, resolution),
     }
     if is_handoff:
         fixture["handoff_summary"] = _build_handoff_summary(case)
@@ -124,6 +135,7 @@ def _translate_context_events(
     expected_states: list[dict[str, Any]],
     expected_outcome: str,
     resolution: str,
+    scenario_type: str,
 ) -> list[dict[str, Any]]:
     states_by_turn: dict[int, dict[str, Any]] = {}
     for state in expected_states:
@@ -146,6 +158,9 @@ def _translate_context_events(
         turn = event.get("after_turn", 0)
         state = states_by_turn.get(turn)
         out["next_check"] = _derive_event_next_check(event, state, expected_outcome, resolution)
+        out["description"] = _concrete_context_description(out, scenario_type)
+        out["evidence_summary"] = out["description"]
+        out["next_best_action"] = _support_action_for_context(out, scenario_type, expected_outcome, resolution)
 
         translated.append(out)
     return translated
@@ -159,9 +174,9 @@ def _derive_event_next_check(
 ) -> str:
     if event.get("reveals_final_cause"):
         if expected_outcome == "resolved":
-            return "confirm mechanism evidence and customer-visible corrective action"
+            return _top_level_next_best_action("", "resolved", resolution)
         if expected_outcome == "probable_cause":
-            return "identify remaining verification before presenting likely cause"
+            return _top_level_next_best_action("", "probable_cause", resolution)
         return _handoff_next_check(resolution)
 
     ruled = event.get("ruled_out_branches", [])
@@ -199,7 +214,7 @@ def _ensure_turn_guidance_events(
         enriched.append({
             "after_turn": turn,
             "source": "support_process_guidance",
-            "description": "Support-process guidance for the next useful investigation step.",
+            "description": _turn_guidance_description(turn, turn_count, scenario_type),
             "facts": [],
             "resolved_unknowns": [],
             "ruled_out_branches": [],
@@ -208,6 +223,8 @@ def _ensure_turn_guidance_events(
             "is_conflicting": False,
             "reveals_final_cause": False,
             "next_check": _turn_guidance_next_check(turn, turn_count, final_third, expected_outcome, resolution, scenario_type),
+            "evidence_summary": _turn_guidance_description(turn, turn_count, scenario_type),
+            "next_best_action": _turn_guidance_next_check(turn, turn_count, final_third, expected_outcome, resolution, scenario_type),
         })
 
     enriched.sort(key=lambda e: (int(e.get("after_turn", 0)), e.get("source", "")))
@@ -224,22 +241,124 @@ def _turn_guidance_next_check(
 ) -> str:
     domain = scenario_type.replace("_", " ")
     if turn < max(3, int(turn_count / 3)):
-        return f"ask what changed and collect comparison evidence for the {domain} issue"
+        return f"Ask what changed recently and collect one working example and one affected example for the {domain} issue."
     if turn < final_third:
-        return f"verify or rule out active {domain} branches with product evidence"
+        return f"Compare the working and affected examples, then check the strongest product signal for the {domain} issue."
     if expected_outcome == "resolved":
-        return "confirm mechanism evidence and customer-visible corrective action"
+        return _top_level_next_best_action(scenario_type, "resolved", resolution)
     if expected_outcome == "probable_cause":
-        return "identify remaining verification before presenting likely cause"
+        return _top_level_next_best_action(scenario_type, "probable_cause", resolution)
     return _handoff_next_check(resolution)
 
 
 def _handoff_next_check(resolution: str) -> str:
     if resolution == "escalated":
-        return "package evidence and send next action to engineering or product owner"
+        return "Send the evidence summary, affected examples, and latest warning details to engineering or product support."
     if resolution == "unresolved":
-        return "assign follow-up owner and preserve open verification steps"
-    return "handoff to the customer admin or implementation owner with evidence summary"
+        return "Assign a follow-up owner and keep the open verification steps attached to the case."
+    return "Send the evidence summary to the customer admin or implementation owner and ask them to confirm the remaining dependency."
+
+
+def _turn_guidance_description(turn: int, turn_count: int, scenario_type: str) -> str:
+    domain = scenario_type.replace("_", " ")
+    if turn < max(3, int(turn_count / 3)):
+        return f"No new system evidence yet; the agent should gather a working and affected example for the {domain} issue."
+    return f"No new system evidence at this turn; continue comparing product signals for the {domain} issue."
+
+
+def _concrete_context_description(event: dict[str, Any], scenario_type: str) -> str:
+    facts = set(event.get("facts", []))
+    description = event.get("description", "")
+    if "comparison:config_differs" in facts or "hidden configuration detail" in description.lower():
+        return _comparison_description(scenario_type)
+    if "logs:warning_dismissed" in facts:
+        return _warning_description(scenario_type)
+    if "admin:late_mention" in facts:
+        return _admin_detail_description(scenario_type)
+    if "sso_group:membership" in facts:
+        return "Identity provider data shows group membership is relevant to the affected user comparison."
+    if "billing_status:active" in facts:
+        return "Billing shows the account is active and payment is current, so a billing hold is less likely."
+    if description:
+        return _clean_support_text(description)
+    return _turn_guidance_description(1, 3, scenario_type)
+
+
+def _comparison_description(scenario_type: str) -> str:
+    return {
+        "permissions_access": "A working user and a blocked user differ in access configuration; compare identity group and workspace role assignments.",
+        "onboarding_migration": "A migrated record that worked and a missing record differ in source export settings; compare archive and ownership settings.",
+        "workspace_setup": "A working workspace and the failed workspace differ in setup configuration; compare region, template, and admin approval settings.",
+        "integrations_data_sync": "A successful sync and failed sync differ in connector configuration; compare OAuth scope, object mapping, and job warnings.",
+        "billing_plan_entitlement": "A correctly entitled account and affected account differ in billing entitlement state; compare plan, seat, and refresh status.",
+    }.get(scenario_type, "A working example and affected example differ in configuration; compare the exact setting before closing the case.")
+
+
+def _warning_description(scenario_type: str) -> str:
+    return {
+        "permissions_access": "The audit log contains an access warning that should be checked against the affected user's role source.",
+        "onboarding_migration": "The migration log contains a warning that should be checked against the affected records.",
+        "workspace_setup": "The workspace setup log contains a warning that should be checked before retrying setup.",
+        "integrations_data_sync": "The sync log contains a warning that should be checked against the failed job.",
+        "billing_plan_entitlement": "The entitlement service contains a warning that should be checked against the plan refresh.",
+    }.get(scenario_type, "The product log contains a warning that should be checked before closing the case.")
+
+
+def _admin_detail_description(scenario_type: str) -> str:
+    return {
+        "permissions_access": "An admin shared a late access detail; verify it against identity provider and workspace role records.",
+        "onboarding_migration": "An admin shared a late migration detail; verify it against the source export and migration job logs.",
+        "workspace_setup": "An admin shared a late setup detail; verify it against workspace setup settings.",
+        "integrations_data_sync": "An admin shared a late integration detail; verify it against connector settings and sync logs.",
+        "billing_plan_entitlement": "An admin shared a late billing detail; verify it against entitlement and invoice records.",
+    }.get(scenario_type, "An admin shared a late detail; verify it against product records.")
+
+
+def _support_action_for_context(
+    event: dict[str, Any],
+    scenario_type: str,
+    expected_outcome: str,
+    resolution: str,
+) -> str:
+    if event.get("reveals_final_cause"):
+        return _top_level_next_best_action(scenario_type, expected_outcome, resolution)
+    if event.get("ruled_out_branches"):
+        return f"Update the case notes with why {_readable_label(event['ruled_out_branches'][0])} is less likely, then continue the comparison check."
+    if event.get("candidate_branches"):
+        return f"Check product records that would confirm or weaken {_readable_label(event['candidate_branches'][0])}."
+    return _turn_guidance_next_check(2, 6, 4, expected_outcome, resolution, scenario_type)
+
+
+def _top_level_next_best_action(scenario_type: str, expected_outcome: str, resolution: str) -> str:
+    if expected_outcome == "handoff":
+        return _handoff_next_check(resolution)
+    if expected_outcome == "probable_cause":
+        return {
+            "permissions_access": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
+            "onboarding_migration": "Verify one affected record against the source export before treating the migration cause as resolved.",
+            "workspace_setup": "Verify the failed workspace settings against a working workspace before treating the setup cause as resolved.",
+            "integrations_data_sync": "Verify the failed sync job against a recent successful job before treating the integration cause as resolved.",
+            "billing_plan_entitlement": "Confirm the entitlement refresh status before treating the billing issue as resolved.",
+        }.get(scenario_type, "Verify one more product signal before treating the likely cause as resolved.")
+    return {
+        "permissions_access": "Confirm the affected user can access the workspace after the role or group fix.",
+        "onboarding_migration": "Confirm the affected record appears correctly after the migration correction.",
+        "workspace_setup": "Confirm the workspace can complete setup after the configuration correction.",
+        "integrations_data_sync": "Confirm the affected object syncs successfully after the connector correction.",
+        "billing_plan_entitlement": "Confirm the customer sees the correct plan after entitlement refresh.",
+    }.get(scenario_type, "Confirm the customer can complete the affected workflow after the fix.")
+
+
+def _clean_support_text(text: str) -> str:
+    cleaned = text
+    replacements = {
+        "a working example differs in one hidden configuration detail": "a working example and affected example differ in configuration",
+        "Support-process guidance for the next useful investigation step.": "No new system evidence at this turn; continue the next support check.",
+        "mechanism evidence": "product evidence",
+    }
+    for old, new in replacements.items():
+        cleaned = cleaned.replace(old, new)
+    return cleaned
 
 
 def _unknowns_from_event(event: dict[str, Any]) -> list[str]:
@@ -377,13 +496,28 @@ def _build_safe_customer_summary(case: dict[str, Any], expected_outcome: str) ->
     outcome = gt.get("final_outcome", spec.get("final_outcome", ""))
 
     if expected_outcome == "resolved":
-        return f"Support found evidence for the mechanism and can confirm the corrective action. {outcome}".strip()
+        return f"Support found product evidence and can confirm the corrective action. {outcome}".strip()
     if expected_outcome == "probable_cause":
         cause = gt.get("actual_root_cause", "the leading operational cause")
         return (
             f"The likely cause is {cause}. Support should verify the remaining product evidence before treating it as fully resolved."
         )
     return _build_handoff_summary(case)
+
+
+def _build_evidence_summary(events: list[dict[str, Any]], scenario_type: str) -> str:
+    relevant = [event for event in events if event.get("relevant", True)]
+    final_events = [
+        event
+        for event in relevant
+        if event.get("final_cause") or event.get("reveals_final_cause")
+    ]
+    candidates = final_events or relevant
+    for event in reversed(candidates):
+        description = event.get("evidence_summary") or event.get("description")
+        if description:
+            return description
+    return _comparison_description(scenario_type)
 
 
 def _derive_next_owner(case: dict[str, Any]) -> str:
