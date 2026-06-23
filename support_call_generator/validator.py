@@ -77,6 +77,8 @@ def validate_case(case: dict[str, Any]) -> ValidationResult:
                 errors.append(f"ground truth must include at least two {key}")
         if not isinstance(ground_truth.get("why_difficult"), list) or len(ground_truth.get("why_difficult", [])) < 2:
             errors.append("ground truth must explain why the call is difficult")
+        if case.get("scenario_spec", {}).get("scenario_type") == "b2c_subscription_billing":
+            _validate_b2c_expected_handoff(ground_truth, errors)
 
     turns = case.get("transcript", {}).get("turns", [])
     if len(turns) < 16:
@@ -206,6 +208,42 @@ def _validate_expected_state(states: list, turn_count: int, errors: list[str]) -
 
         if state.get("final_cause_allowed") and turn < final_third_start:
             errors.append(f"final_cause_allowed is true before final third (turn {turn})")
+
+
+def _validate_b2c_expected_handoff(ground_truth: dict[str, Any], errors: list[str]) -> None:
+    handoff = ground_truth.get("expected_handoff")
+    if not isinstance(handoff, dict):
+        errors.append("b2c_subscription_billing ground truth must include expected_handoff")
+        return
+
+    ai_to_human = handoff.get("ai_to_human")
+    if not isinstance(ai_to_human, dict):
+        errors.append("expected_handoff must include ai_to_human")
+        return
+
+    required = {
+        "customer_account_identity",
+        "charge",
+        "customer_claim",
+        "desired_outcome",
+        "checks_with_results",
+        "ruled_out_branches",
+        "likely_cause",
+        "confidence",
+        "risk_urgency",
+        "next_step",
+        "what_not_to_promise",
+    }
+    missing = required - set(ai_to_human)
+    if missing:
+        errors.append(f"expected_handoff.ai_to_human missing fields: {', '.join(sorted(missing))}")
+
+    charge = ai_to_human.get("charge", {})
+    if not isinstance(charge, dict) or not {"amount", "date", "last4", "descriptor", "transaction_id"}.issubset(charge):
+        errors.append("expected_handoff.ai_to_human.charge must include amount, date, last4, descriptor, and transaction_id")
+
+    if ground_truth.get("resolution_type") == "escalated" and "human_to_engineering" not in handoff:
+        errors.append("escalated b2c_subscription_billing cases must include human_to_engineering")
 
 
 def _normalized(text: str) -> str:
