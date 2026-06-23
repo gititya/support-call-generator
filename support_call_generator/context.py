@@ -10,6 +10,14 @@ CONTEXT_SOURCES: dict[str, list[str]] = {
     "workspace_setup": ["admin_panel", "billing_system", "email_delivery", "audit_log", "incident_note"],
     "integrations_data_sync": ["integration_log", "crm_connector", "webhook_log", "admin_panel", "prior_ticket"],
     "billing_plan_entitlement": ["billing_system", "entitlement_service", "admin_panel", "audit_log", "prior_ticket"],
+    "b2c_subscription_billing": [
+        "billing_system",
+        "payment_processor",
+        "subscription_service",
+        "refund_ledger",
+        "identity_verification",
+        "card_network_dunning",
+    ],
 }
 
 _IRRELEVANT_TEMPLATES: dict[str, list[dict[str, Any]]] = {
@@ -73,6 +81,18 @@ _IRRELEVANT_TEMPLATES: dict[str, list[dict[str, Any]]] = {
             "facts": ["seat_warning:different_workspace", "scope:unrelated"],
         },
     ],
+    "b2c_subscription_billing": [
+        {
+            "source": "refund_ledger",
+            "description": "A previous refund for a different monthly charge was completed and does not apply to this transaction.",
+            "facts": ["prior_refund:different_charge", "status:resolved"],
+        },
+        {
+            "source": "card_network_dunning",
+            "description": "A card retry notice exists for another failed payment attempt, but it belongs to a different subscription period.",
+            "facts": ["retry_notice:different_period", "scope:unrelated"],
+        },
+    ],
 }
 
 _CONFLICTING_TEMPLATES: dict[str, list[dict[str, Any]]] = {
@@ -109,6 +129,18 @@ _CONFLICTING_TEMPLATES: dict[str, list[dict[str, Any]]] = {
             "source": "admin_panel",
             "description": "Admin panel shows available seats, contradicting a simple seat-limit explanation.",
             "facts": ["seat_count:available"],
+        },
+    ],
+    "b2c_subscription_billing": [
+        {
+            "source": "payment_processor",
+            "description": "Processor status shows the charge is settled, which contradicts a simple pending-authorization explanation.",
+            "facts": ["processor_status:settled"],
+        },
+        {
+            "source": "subscription_service",
+            "description": "Subscription history on the verified account does not show the plan the customer thinks was charged.",
+            "facts": ["subscription_history:no_matching_plan"],
         },
     ],
 }

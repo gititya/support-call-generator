@@ -49,6 +49,7 @@ def _scenario_categories(scenario_type: str) -> set[str]:
         "workspace_setup": {"simulated_admin_setup_context"},
         "integrations_data_sync": {"simulated_integration_context"},
         "billing_plan_entitlement": {"simulated_billing_context"},
+        "b2c_subscription_billing": {"simulated_b2c_billing_context"},
     }.get(scenario_type, {"simulated_b2b_support_context"})
 
 

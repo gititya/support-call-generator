@@ -113,6 +113,10 @@ def _build_fixture(case: dict[str, Any]) -> dict[str, Any]:
     if is_handoff:
         fixture["handoff_summary"] = _build_handoff_summary(case)
         fixture["next_owner"] = _derive_next_owner(case)
+    if spec["scenario_type"] == "b2c_subscription_billing":
+        expected_handoff = gt.get("expected_handoff")
+        if expected_handoff:
+            fixture["expected_handoff"] = expected_handoff
     return fixture
 
 
@@ -159,7 +163,7 @@ def _translate_context_events(
 
         turn = event.get("after_turn", 0)
         state = states_by_turn.get(turn)
-        out["next_check"] = _derive_event_next_check(event, state, expected_outcome, resolution)
+        out["next_check"] = _derive_event_next_check(event, state, expected_outcome, resolution, scenario_type)
         out["description"] = _concrete_context_description(out, scenario_type)
         out["evidence_summary"] = out["description"]
         out["next_best_action"] = _support_action_for_context(out, scenario_type, expected_outcome, resolution)
@@ -173,13 +177,14 @@ def _derive_event_next_check(
     state: dict[str, Any] | None,
     expected_outcome: str,
     resolution: str,
+    scenario_type: str,
 ) -> str:
     if event.get("reveals_final_cause"):
         if expected_outcome == "resolved":
             return _top_level_next_best_action("", "resolved", resolution)
         if expected_outcome == "probable_cause":
             return _top_level_next_best_action("", "probable_cause", resolution)
-        return _handoff_next_check(resolution)
+        return _handoff_next_check(resolution, scenario_type)
 
     ruled = event.get("ruled_out_branches", [])
     candidates = event.get("candidate_branches", [])
@@ -241,6 +246,16 @@ def _turn_guidance_next_check(
     resolution: str,
     scenario_type: str,
 ) -> str:
+    if scenario_type == "b2c_subscription_billing":
+        if turn < max(3, int(turn_count / 3)):
+            return "Confirm the charge amount, date, descriptor, card last four, and whether the bank shows it as pending or posted."
+        if turn < final_third:
+            return "Compare payment status, subscription history, identity verification, and refund ledger before naming the billing explanation."
+        if expected_outcome == "resolved":
+            return _top_level_next_best_action(scenario_type, "resolved", resolution)
+        if expected_outcome == "probable_cause":
+            return _top_level_next_best_action(scenario_type, "probable_cause", resolution)
+        return _handoff_next_check(resolution, scenario_type)
     domain = scenario_type.replace("_", " ")
     if turn < max(3, int(turn_count / 3)):
         return f"Ask what changed recently and collect one working example and one affected example for the {domain} issue."
@@ -250,10 +265,16 @@ def _turn_guidance_next_check(
         return _top_level_next_best_action(scenario_type, "resolved", resolution)
     if expected_outcome == "probable_cause":
         return _top_level_next_best_action(scenario_type, "probable_cause", resolution)
-    return _handoff_next_check(resolution)
+    return _handoff_next_check(resolution, scenario_type)
 
 
-def _handoff_next_check(resolution: str) -> str:
+def _handoff_next_check(resolution: str, scenario_type: str = "") -> str:
+    if scenario_type == "b2c_subscription_billing":
+        if resolution == "escalated":
+            return "Send verified identity, settled charge details, ruled-out billing paths, and transaction IDs to payments engineering."
+        if resolution == "unresolved":
+            return "Assign a billing follow-up owner and keep the open payment, refund, and identity checks attached to the case."
+        return "Route the case to fraud/payments review with the charge details, verification results, and what support must not promise."
     if resolution == "escalated":
         return "Send the evidence summary, affected examples, and latest warning details to engineering or product support."
     if resolution == "unresolved":
@@ -262,6 +283,10 @@ def _handoff_next_check(resolution: str) -> str:
 
 
 def _turn_guidance_description(turn: int, turn_count: int, scenario_type: str) -> str:
+    if scenario_type == "b2c_subscription_billing":
+        if turn < max(3, int(turn_count / 3)):
+            return "No new system evidence yet; the agent should collect charge details and verify customer identity."
+        return "No new system evidence at this turn; continue comparing payment, subscription, refund, and identity signals."
     domain = scenario_type.replace("_", " ")
     if turn < max(3, int(turn_count / 3)):
         return f"No new system evidence yet; the agent should gather a working and affected example for the {domain} issue."
@@ -281,6 +306,10 @@ def _concrete_context_description(event: dict[str, Any], scenario_type: str) -> 
         return "Identity provider data shows group membership is relevant to the affected user comparison."
     if "billing_status:active" in facts:
         return "Billing shows the account is active and payment is current, so a billing hold is less likely."
+    if "processor_status:settled" in facts:
+        return "Payment processor shows the card charge is settled, so pending authorization is less likely."
+    if "subscription_history:no_matching_plan" in facts:
+        return "Subscription history on the verified account does not show the plan tied to the disputed charge."
     if description:
         return _clean_support_text(description)
     return _turn_guidance_description(1, 3, scenario_type)
@@ -293,6 +322,7 @@ def _comparison_description(scenario_type: str) -> str:
         "workspace_setup": "A working workspace and the failed workspace differ in setup configuration; compare region, template, and admin approval settings.",
         "integrations_data_sync": "A successful sync and failed sync differ in connector configuration; compare OAuth scope, object mapping, and job warnings.",
         "billing_plan_entitlement": "A correctly entitled account and affected account differ in billing entitlement state; compare plan, seat, and refresh status.",
+        "b2c_subscription_billing": "A disputed charge and the verified subscription account differ across payment, subscription, refund, or identity records; compare those records before closing the case.",
     }.get(scenario_type, "A working example and affected example differ in configuration; compare the exact setting before closing the case.")
 
 
@@ -303,6 +333,7 @@ def _warning_description(scenario_type: str) -> str:
         "workspace_setup": "The workspace setup log contains a warning that should be checked before retrying setup.",
         "integrations_data_sync": "The sync log contains a warning that should be checked against the failed job.",
         "billing_plan_entitlement": "The entitlement service contains a warning that should be checked against the plan refresh.",
+        "b2c_subscription_billing": "The billing or payment record contains a warning that should be checked before promising a refund or fraud outcome.",
     }.get(scenario_type, "The product log contains a warning that should be checked before closing the case.")
 
 
@@ -313,6 +344,7 @@ def _admin_detail_description(scenario_type: str) -> str:
         "workspace_setup": "An admin shared a late setup detail; verify it against workspace setup settings.",
         "integrations_data_sync": "An admin shared a late integration detail; verify it against connector settings and sync logs.",
         "billing_plan_entitlement": "An admin shared a late billing detail; verify it against entitlement and invoice records.",
+        "b2c_subscription_billing": "The customer shared a late billing detail; verify it against payment, subscription, refund, and identity records.",
     }.get(scenario_type, "An admin shared a late detail; verify it against product records.")
 
 
@@ -333,7 +365,7 @@ def _support_action_for_context(
 
 def _top_level_next_best_action(scenario_type: str, expected_outcome: str, resolution: str) -> str:
     if expected_outcome == "handoff":
-        return _handoff_next_check(resolution)
+        return _handoff_next_check(resolution, scenario_type)
     if expected_outcome == "probable_cause":
         return {
             "permissions_access": "Compare one blocked user with one working user in the identity provider before treating the access cause as resolved.",
@@ -341,6 +373,7 @@ def _top_level_next_best_action(scenario_type: str, expected_outcome: str, resol
             "workspace_setup": "Verify the failed workspace settings against a working workspace before treating the setup cause as resolved.",
             "integrations_data_sync": "Verify the failed sync job against a recent successful job before treating the integration cause as resolved.",
             "billing_plan_entitlement": "Confirm the entitlement refresh status before treating the billing issue as resolved.",
+            "b2c_subscription_billing": "Verify payment status, subscription history, and refund eligibility before treating the billing explanation as resolved.",
         }.get(scenario_type, "Verify one more product signal before treating the likely cause as resolved.")
     return {
         "permissions_access": "Confirm the affected user can access the workspace after the role or group fix.",
@@ -348,6 +381,7 @@ def _top_level_next_best_action(scenario_type: str, expected_outcome: str, resol
         "workspace_setup": "Confirm the workspace can complete setup after the configuration correction.",
         "integrations_data_sync": "Confirm the affected object syncs successfully after the connector correction.",
         "billing_plan_entitlement": "Confirm the customer sees the correct plan after entitlement refresh.",
+        "b2c_subscription_billing": "Confirm the customer understands the charge, cancellation state, refund path, and any fraud/payments routing boundary.",
     }.get(scenario_type, "Confirm the customer can complete the affected workflow after the fix.")
 
 
@@ -500,6 +534,11 @@ def _build_safe_customer_summary(case: dict[str, Any], expected_outcome: str) ->
     if expected_outcome == "resolved":
         return f"Support found product evidence and can confirm the corrective action. {outcome}".strip()
     if expected_outcome == "probable_cause":
+        if spec.get("scenario_type") == "b2c_subscription_billing":
+            return (
+                f"The likely billing explanation is {gt.get('actual_root_cause', 'the leading billing cause')}. "
+                "Support should verify remaining payment or refund evidence before treating it as fully resolved."
+            )
         cause = gt.get("actual_root_cause", "the leading operational cause")
         return (
             f"The likely cause is {cause}. Support should verify the remaining product evidence before treating it as fully resolved."
@@ -526,7 +565,11 @@ def _derive_next_owner(case: dict[str, Any]) -> str:
     resolution = case["ground_truth"]["resolution_type"]
     scenario = case["scenario_spec"]["scenario_type"]
     if resolution == "escalated":
+        if scenario == "b2c_subscription_billing":
+            return "payments engineering"
         return "engineering/product support"
+    if scenario == "b2c_subscription_billing":
+        return "fraud/payments review" if resolution in {"handoff", "unresolved"} else "billing support owner"
     if scenario == "permissions_access":
         return "customer admin or identity owner"
     if scenario == "workspace_setup":
@@ -546,9 +589,15 @@ def _build_handoff_summary(case: dict[str, Any]) -> str:
 
     parts = []
     if resolution == "escalated":
-        parts.append("Escalated to engineering/product.")
+        if spec["scenario_type"] == "b2c_subscription_billing":
+            parts.append("Escalated to payments engineering.")
+        else:
+            parts.append("Escalated to engineering/product.")
     elif resolution == "handoff":
-        parts.append("Handed off to customer admin or implementation owner.")
+        if spec["scenario_type"] == "b2c_subscription_billing":
+            parts.append("Handed off to fraud/payments review.")
+        else:
+            parts.append("Handed off to customer admin or implementation owner.")
     else:
         parts.append("Investigation remains open with incomplete evidence.")
 

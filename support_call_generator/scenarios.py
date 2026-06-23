@@ -10,6 +10,7 @@ SCENARIO_TYPES = [
     "workspace_setup",
     "integrations_data_sync",
     "billing_plan_entitlement",
+    "b2c_subscription_billing",
 ]
 
 CUSTOMER_MOODS = ["calm", "confused", "frustrated", "anxious", "impatient"]
@@ -88,6 +89,16 @@ ROOT_CAUSE_CATALOG = {
         "invoice owner mismatch",
         "downgrade removed premium permission",
         "contracted add-on not provisioned",
+    ],
+    "b2c_subscription_billing": [
+        "trial-to-paid conversion",
+        "duplicate retry charge",
+        "pending authorization mistaken for settled charge",
+        "household family-plan purchase",
+        "mid-cycle proration after plan change",
+        "failed-payment dunning card retry",
+        "price increase not noticed",
+        "genuine fraud card not recognized",
     ],
 }
 
@@ -363,6 +374,162 @@ SCENARIO_LIBRARY: dict[str, list[dict[str, Any]]] = {
             "final_outcome": "agent identifies grace-period billing hold and routes the payment owner to resolve it",
         },
     ],
+    "b2c_subscription_billing": [
+        {
+            "hidden_root_cause": "The disputed charge is a legitimate trial-to-paid subscription conversion that the customer forgot about.",
+            "resolution_type": "resolved",
+            "issue_path": [
+                "subscriber reports an unrecognized subscription charge",
+                "agent verifies account identity and charge details",
+                "late evidence shows the free trial converted after renewal reminders",
+                "agent explains refund eligibility without overpromising",
+            ],
+            "known_facts": [
+                "customer sees a $19.99 charge from NOVA STREAM PLUS on their card",
+                "customer says they cancelled something recently but is not sure which account used the trial",
+                "the card last four matches the payment method on the subscription account",
+            ],
+            "delayed_facts": [
+                "subscription service shows a trial started 14 days before the charge",
+                "billing system shows two renewal reminder emails before conversion",
+                "refund ledger shows no prior refund request for this subscription",
+            ],
+            "wrong_paths": [
+                "duplicate charge",
+                "fraudulent card use",
+                "pending authorization",
+            ],
+            "escalation_trigger": "customer says they need the money back today and is worried another charge will post",
+            "final_outcome": "agent confirms the charge came from trial conversion and opens the policy-based refund path after cancellation",
+            "expected_handoff_seed": {
+                "account_id": "acct_consumer_1827",
+                "subscription_id": "sub_trial_4412",
+                "customer_identity": "Maya R., verified by account email and card last four",
+                "charge": {
+                    "amount": "$19.99",
+                    "date": "2026-06-18",
+                    "descriptor": "NOVA STREAM PLUS",
+                    "last4": "4242",
+                    "transaction_id": "txn_trial_61819",
+                },
+                "customer_claim": "Customer does not recognize the charge and believes the trial should not have converted.",
+                "desired_outcome": "Cancel subscription and request refund if policy allows.",
+                "checks": [
+                    "Verified account email and card last four.",
+                    "Confirmed trial start and conversion timestamp in subscription service.",
+                    "Checked refund ledger for prior refund activity.",
+                ],
+                "ruled_out": ["duplicate charge", "pending authorization", "confirmed fraud"],
+                "risk": "Medium urgency because customer is upset about a household budget impact.",
+                "next_step": "Cancel renewal, explain refund policy window, and submit refund request if eligible.",
+                "what_not_to_promise": "Do not promise an instant refund or call the charge fraud.",
+            },
+        },
+        {
+            "hidden_root_cause": "The customer was charged twice because a payment retry succeeded after the first processor response timed out.",
+            "resolution_type": "escalated",
+            "issue_path": [
+                "subscriber reports two identical charges for one subscription renewal",
+                "agent compares settled transactions and subscription renewal events",
+                "late evidence shows a processor timeout followed by a successful retry",
+                "case escalates to payments engineering for refund and ledger correction",
+            ],
+            "known_facts": [
+                "customer sees two $12.99 settled charges with the same descriptor",
+                "subscription page shows only one active monthly plan",
+                "customer says the bank shows both charges as posted, not pending",
+            ],
+            "delayed_facts": [
+                "payment processor shows two settled transaction IDs for one renewal attempt",
+                "billing system shows only one renewal event for the subscription",
+                "refund ledger has no automatic reversal for the retry transaction",
+            ],
+            "wrong_paths": [
+                "pending authorization",
+                "family member purchase",
+                "price increase",
+            ],
+            "escalation_trigger": "customer is requesting immediate correction because both charges have settled",
+            "final_outcome": "agent rules out pending authorization and escalates the duplicate settled transaction to payments engineering",
+            "expected_handoff_seed": {
+                "account_id": "acct_consumer_2390",
+                "subscription_id": "sub_monthly_8821",
+                "customer_identity": "Jordan L., verified by SMS code and card last four",
+                "charge": {
+                    "amount": "$12.99 x2",
+                    "date": "2026-06-20",
+                    "descriptor": "NOVA STREAM PLUS",
+                    "last4": "1881",
+                    "transaction_id": "txn_renew_62012 and txn_retry_62013",
+                },
+                "customer_claim": "Customer says one monthly renewal produced two settled card charges.",
+                "desired_outcome": "Refund the duplicate charge and confirm it will not repeat.",
+                "checks": [
+                    "Verified both charges are settled, not pending authorizations.",
+                    "Confirmed only one subscription renewal event exists.",
+                    "Checked refund ledger and found no automatic reversal.",
+                ],
+                "ruled_out": ["pending authorization", "separate family purchase", "price increase"],
+                "risk": "High urgency because the customer has two settled charges for one renewal.",
+                "next_step": "Escalate to payments engineering with both transaction IDs and request duplicate-charge correction.",
+                "what_not_to_promise": "Do not promise same-day bank posting or manually adjust the ledger without payments review.",
+                "engineering_discrepancy": "Two settled payment transactions exist for one subscription renewal event, and the duplicate lacks an automatic reversal.",
+                "evidence_handles": ["txn_renew_62012", "txn_retry_62013", "renewal_event_62012", "processor_timeout_62012"],
+                "engineering_ask": "Void or refund duplicate transaction and reconcile billing ledger to the single renewal event.",
+            },
+        },
+        {
+            "hidden_root_cause": "The card-not-recognized claim is unresolved and fraud-flagged because no matching subscription event can be confirmed for the verified account.",
+            "resolution_type": "handoff",
+            "issue_path": [
+                "subscriber reports a card charge they do not recognize",
+                "agent verifies identity and checks account subscription history",
+                "late evidence shows the charge cannot be tied to the verified subscription account",
+                "case routes to fraud and payments review without confirming a root cause",
+            ],
+            "known_facts": [
+                "customer sees a $49.99 charge from NOVA STREAM PLUS but does not recognize the plan",
+                "customer says no one in the household admits purchasing it",
+                "the verified account email has no matching annual subscription",
+            ],
+            "delayed_facts": [
+                "payment processor has a settled charge with the customer's card last four",
+                "identity verification confirms the caller controls the known account",
+                "subscription service has no matching subscription event on the verified account",
+            ],
+            "wrong_paths": [
+                "trial-to-paid conversion",
+                "family member purchase",
+                "price increase",
+            ],
+            "escalation_trigger": "customer is worried their card was used without permission and asks whether to freeze it",
+            "final_outcome": "agent does not confirm fraud, preserves the evidence, and routes the case to the fraud/payments team",
+            "expected_handoff_seed": {
+                "account_id": "acct_consumer_7741",
+                "subscription_id": "no matching subscription event on verified account",
+                "customer_identity": "Priya S., verified by email, SMS code, and card last four",
+                "charge": {
+                    "amount": "$49.99",
+                    "date": "2026-06-21",
+                    "descriptor": "NOVA STREAM PLUS",
+                    "last4": "9090",
+                    "transaction_id": "txn_unknown_62149",
+                },
+                "customer_claim": "Customer does not recognize the charge and says no household member admits purchasing it.",
+                "desired_outcome": "Investigate possible unauthorized use and advise next safe step.",
+                "checks": [
+                    "Verified caller identity for the known account.",
+                    "Checked subscription history for trial conversion, annual plan, and family-plan purchase.",
+                    "Confirmed no matching subscription event on the verified account.",
+                ],
+                "ruled_out": ["trial-to-paid conversion on verified account", "price increase", "known family-plan purchase"],
+                "risk": "High urgency because the charge is card-not-recognized and cannot be tied to the verified account.",
+                "next_step": "Route to fraud/payments team with transaction details and advise customer to contact their card issuer if they suspect unauthorized use.",
+                "what_not_to_promise": "Do not confirm fraud, disclose another account, or promise a refund before fraud review.",
+                "fraud_flagged": True,
+            },
+        },
+    ],
 }
 
 
@@ -378,15 +545,9 @@ def build_scenario_spec(
     rng = random.Random(seed)
     base = _choose_base(scenario_type, rng, root_cause_counts or {})
     difficulty = _weighted_choice(rng, {"easy": 15, "medium": 45, "hard": 40})
-    resolution_type = _weighted_choice(rng, RESOLUTION_WEIGHTS)
+    resolution_type = base.get("resolution_type") or _weighted_choice(rng, RESOLUTION_WEIGHTS)
 
-    persona = {
-        "role": rng.choice(["Customer Success Ops Lead", "IT Admin", "RevOps Manager", "Implementation Manager"]),
-        "mood": rng.choice(CUSTOMER_MOODS),
-        "clarity": rng.choice(CUSTOMER_CLARITY),
-        "patience": rng.choice(CUSTOMER_PATIENCE),
-        "technical_skill": rng.choice(TECHNICAL_SKILL),
-    }
+    persona = _build_persona(scenario_type, rng)
     stressors = _build_stressors(base, rng)
 
     spec = {
@@ -397,13 +558,10 @@ def build_scenario_spec(
         "difficulty": difficulty,
         "difficulty_metadata": _build_difficulty_metadata(difficulty, rng),
         "resolution_type": resolution_type,
-        "resolution_outcome": _resolution_outcome(resolution_type),
+        "resolution_outcome": _resolution_outcome(resolution_type, scenario_type),
         "root_cause_id": base["root_cause_id"],
         "root_cause_category": base["root_cause_category"],
-        "product_policy": {
-            "support_boundary": "Support can diagnose configuration and migration issues, but customer admins must approve identity, DNS, or OAuth changes.",
-            "escalation_policy": "Escalate when a production deadline is at risk, multiple users are blocked, or root cause remains unclear after three diagnostic branches.",
-        },
+        "product_policy": _build_product_policy(scenario_type),
         "known_facts": list(base["known_facts"]),
         "delayed_facts": list(base["delayed_facts"]),
         "ambiguity_level": rng.choice(AMBIGUITY_LEVELS),
@@ -413,13 +571,18 @@ def build_scenario_spec(
         "issue_path": list(base["issue_path"]),
         "wrong_paths": list(base["wrong_paths"]),
         "stressors": stressors,
-        "customer_unreliability": _build_customer_unreliability(rng),
+        "customer_unreliability": _build_customer_unreliability(rng, scenario_type),
         "final_outcome": base["final_outcome"],
     }
+    if scenario_type == "b2c_subscription_billing":
+        spec["expected_handoff_seed"] = dict(base["expected_handoff_seed"])
 
     if profile:
         from support_call_generator.profiles import apply_profile
         apply_profile(spec, profile, rng)
+        if base.get("resolution_type"):
+            spec["resolution_type"] = base["resolution_type"]
+        spec["resolution_outcome"] = _resolution_outcome(spec["resolution_type"], scenario_type)
 
     return spec
 
@@ -456,7 +619,10 @@ def _catalog_entry(scenario_type: str, label: str, root_cause: str) -> dict[str,
         "workspace_setup": "workspace setup issue",
         "integrations_data_sync": "integration sync issue",
         "billing_plan_entitlement": "billing or entitlement issue",
+        "b2c_subscription_billing": "subscription billing dispute",
     }[scenario_type]
+    if scenario_type == "b2c_subscription_billing":
+        return _b2c_catalog_entry(label, root_cause)
     return {
         "hidden_root_cause": root_cause,
         "root_cause_id": _root_id(root_cause),
@@ -490,6 +656,7 @@ def _wrong_paths_for(scenario_type: str, label: str) -> list[str]:
         "workspace_setup": ["billing hold", "region mismatch", "template outage", "invite delivery", "workspace name conflict"],
         "integrations_data_sync": ["field mapping conflict", "rate limit", "webhook outage", "manual import duplication", "CRM permission"],
         "billing_plan_entitlement": ["seat limit", "invite email delivery", "role permission", "workflow misconfiguration", "regional outage"],
+        "b2c_subscription_billing": ["pending authorization", "family member purchase", "trial conversion", "price increase", "duplicate charge"],
     }[scenario_type]
     return [item for item in pool if item.lower() not in label.lower()][:3]
 
@@ -501,6 +668,11 @@ def _root_cause_sentence(scenario_type: str, label: str) -> str:
         "workspace_setup": f"The workspace setup failure is caused by {label}.",
         "integrations_data_sync": f"The integration sync problem is caused by {label}.",
         "billing_plan_entitlement": f"The billing or entitlement problem is caused by {label}.",
+        "b2c_subscription_billing": (
+            "The card-not-recognized claim remains unexplained and fraud-flagged because the verified account has no matching subscription event."
+            if "fraud" in label.lower() or "card not recognized" in label.lower()
+            else f"The subscription billing dispute is caused by {label}."
+        ),
     }[scenario_type]
 
 
@@ -530,7 +702,15 @@ def _build_difficulty_metadata(difficulty: str, rng: random.Random) -> dict[str,
     }
 
 
-def _resolution_outcome(resolution_type: str) -> str:
+def _resolution_outcome(resolution_type: str, scenario_type: str = "") -> str:
+    if scenario_type == "b2c_subscription_billing":
+        return {
+            "resolved": "charge explanation and support-policy next step reached during the call",
+            "probable_cause": "probable billing explanation identified but payment or refund verification remains",
+            "escalated": "escalated to payments engineering with charge and subscription evidence preserved",
+            "handoff": "handed off to fraud/payments review with unresolved card-not-recognized evidence",
+            "unresolved": "billing investigation remains open with incomplete payment or identity evidence",
+        }[resolution_type]
     return {
         "resolved": "clear resolution reached during the call",
         "probable_cause": "probable cause identified but verification remains",
@@ -540,16 +720,112 @@ def _resolution_outcome(resolution_type: str) -> str:
     }[resolution_type]
 
 
-def _build_customer_unreliability(rng: random.Random) -> list[str]:
-    options = [
-        "customer initially says nothing changed, then remembers a recent admin change",
-        "customer overfocuses on a symptom from a previous incident",
-        "customer gives a timeline that later needs correction",
-        "customer mixes up app roles with identity-provider groups",
-        "customer reports a secondhand observation that turns out to be incomplete",
-    ]
+def _build_persona(scenario_type: str, rng: random.Random) -> dict[str, str]:
+    if scenario_type == "b2c_subscription_billing":
+        return {
+            "role": rng.choice(["Subscriber", "Family account owner", "Trial user", "Annual plan customer"]),
+            "mood": rng.choice(["confused", "frustrated", "anxious", "impatient"]),
+            "clarity": rng.choice(CUSTOMER_CLARITY),
+            "patience": rng.choice(CUSTOMER_PATIENCE),
+            "technical_skill": rng.choice(TECHNICAL_SKILL),
+        }
+    return {
+        "role": rng.choice(["Customer Success Ops Lead", "IT Admin", "RevOps Manager", "Implementation Manager"]),
+        "mood": rng.choice(CUSTOMER_MOODS),
+        "clarity": rng.choice(CUSTOMER_CLARITY),
+        "patience": rng.choice(CUSTOMER_PATIENCE),
+        "technical_skill": rng.choice(TECHNICAL_SKILL),
+    }
+
+
+def _build_product_policy(scenario_type: str) -> dict[str, str]:
+    if scenario_type == "b2c_subscription_billing":
+        return {
+            "support_boundary": "Billing support can verify identity, explain charges, cancel renewal, and submit refunds within policy. Fraud or card-not-recognized claims must route to fraud/payments review.",
+            "escalation_policy": "Escalate to payments engineering when settled charges do not match subscription events, refund ledger state is missing, or a charge cannot be tied to the verified account.",
+        }
+    return {
+        "support_boundary": "Support can diagnose configuration and migration issues, but customer admins must approve identity, DNS, or OAuth changes.",
+        "escalation_policy": "Escalate when a production deadline is at risk, multiple users are blocked, or root cause remains unclear after three diagnostic branches.",
+    }
+
+
+def _build_customer_unreliability(rng: random.Random, scenario_type: str) -> list[str]:
+    if scenario_type == "b2c_subscription_billing":
+        options = [
+            "customer is unsure whether they cancelled the trial or only deleted the app",
+            "customer initially says no one else uses the account, then remembers a shared household profile",
+            "customer mixes up pending and posted card activity",
+            "customer gives the charge date from their banking app before realizing it is the posting date",
+            "customer overfocuses on a previous refund experience that does not match this charge",
+        ]
+    else:
+        options = [
+            "customer initially says nothing changed, then remembers a recent admin change",
+            "customer overfocuses on a symptom from a previous incident",
+            "customer gives a timeline that later needs correction",
+            "customer mixes up app roles with identity-provider groups",
+            "customer reports a secondhand observation that turns out to be incomplete",
+        ]
     rng.shuffle(options)
     return options[:2]
+
+
+def _b2c_catalog_entry(label: str, root_cause: str) -> dict[str, Any]:
+    fraud_flagged = "fraud" in label.lower() or "card not recognized" in label.lower()
+    return {
+        "hidden_root_cause": root_cause,
+        **({"resolution_type": "handoff"} if fraud_flagged else {}),
+        "root_cause_id": _root_id(root_cause),
+        "root_cause_category": "b2c_subscription_billing",
+        "issue_path": [
+            "subscriber reports a disputed subscription charge",
+            "agent verifies identity and checks payment/subscription records",
+            f"late evidence points toward {label}",
+            "call ends according to the selected resolution type",
+        ],
+        "known_facts": [
+            "customer reports a card charge they do not recognize",
+            "the descriptor looks like the subscription product but the customer is unsure which account used it",
+            "one account or household detail points away from the first explanation",
+        ],
+        "delayed_facts": [
+            f"billing evidence later mentions {label}",
+            "payment records include a detail the customer did not see in their banking app",
+            "subscription history differs from the customer's first timeline",
+        ],
+        "wrong_paths": _wrong_paths_for("b2c_subscription_billing", label),
+        "escalation_trigger": "customer is worried about an unexpected personal card charge and wants a safe next step",
+        "final_outcome": (
+            "agent preserves the unexplained charge evidence and routes the case to fraud/payments review"
+            if fraud_flagged
+            else f"agent treats {label} as the likely billing explanation, while following refund or fraud policy boundaries"
+        ),
+        "expected_handoff_seed": {
+            "account_id": "acct_consumer_catalog",
+            "subscription_id": "sub_catalog_review",
+            "customer_identity": "Verified subscriber using account email and card last four",
+            "charge": {
+                "amount": "$19.99",
+                "date": "2026-06-18",
+                "descriptor": "NOVA STREAM PLUS",
+                "last4": "4242",
+                "transaction_id": "txn_catalog_review",
+            },
+            "customer_claim": "Customer disputes a subscription charge and wants the charge explained.",
+            "desired_outcome": "Explain the charge and apply refund or fraud routing policy.",
+            "checks": [
+                "Verified identity and card last four.",
+                "Checked payment processor status.",
+                "Checked subscription history and refund ledger.",
+            ],
+            "ruled_out": _wrong_paths_for("b2c_subscription_billing", label)[:2],
+            "risk": "Medium urgency due to disputed personal card charge.",
+            "next_step": "Continue billing review under refund and fraud policy boundaries.",
+            "what_not_to_promise": "Do not promise refund timing or confirm fraud before review.",
+            **({"fraud_flagged": True} if fraud_flagged else {}),
+        },
+    }
 
 
 def _build_stressors(base: dict[str, Any], rng: random.Random) -> dict[str, Any]:

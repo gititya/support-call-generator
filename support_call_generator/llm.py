@@ -8,7 +8,7 @@ from support_call_generator.context import CONTEXT_SOURCES
 from support_call_generator.doctrines import render_doctrines
 
 
-SYSTEM_PROMPT = """You generate synthetic B2B SaaS support calls for evaluation.
+SYSTEM_PROMPT = """You generate synthetic support calls for evaluation.
 Return only valid JSON. Do not include markdown fences.
 The transcript must be realistic, operationally difficult, and not too clean.
 Keep hidden ground truth consistent with the scenario scaffold.
@@ -45,6 +45,7 @@ def _context_event_rules(spec: dict[str, Any]) -> str:
 
 
 def build_generation_prompt(spec: dict[str, Any]) -> str:
+    domain_rules = _domain_rules(spec)
     return f"""
 Create one realistic support-call case from this scaffold.
 
@@ -69,7 +70,7 @@ Rules:
 - Do not create unusually specific customer observations that conveniently name the answer.
 - Do not let the agent intuit the answer without evidence.
 - Do not make the troubleshooting sequence perfect; include at least one wrong-but-plausible branch that gets abandoned.
-- Keep product details generic B2B SaaS.
+{domain_rules}
 
 {_context_event_rules(spec)}
 
@@ -111,7 +112,7 @@ Return JSON with exactly:
     ],
     "escalation_trigger": "...",
     "best_diagnostic_questions": ["..."],
-    "final_outcome": "..."
+    "final_outcome": "..."{_expected_handoff_schema(spec)}
   }},
   "context_events": [
     {{
@@ -149,6 +150,55 @@ Expected timeline requirements:
 Scenario scaffold:
 {json.dumps(spec, indent=2)}
 """.strip()
+
+
+def _domain_rules(spec: dict[str, Any]) -> str:
+    if spec["scenario_type"] == "b2c_subscription_billing":
+        return """- This is B2C subscription billing, not B2B SaaS.
+- Customer is a subscriber or household account user, not an admin, RevOps manager, IT owner, or implementation owner.
+- Use consumer billing language: card charge, descriptor, last four, pending vs posted, trial, renewal, refund, household purchase, fraud routing.
+- Do not use workspace, tenant, SCIM, migration, OAuth, role, seat, rollout, admin approval, or integration workflow language.
+- Preserve policy boundaries: do not promise refunds, do not confirm fraud, and route card-not-recognized cases to fraud/payments review."""
+    return "- Keep product details generic B2B SaaS."
+
+
+def _expected_handoff_schema(spec: dict[str, Any]) -> str:
+    if spec["scenario_type"] != "b2c_subscription_billing":
+        return ""
+    return """,
+    "expected_handoff": {
+      "ai_to_human": {
+        "customer_account_identity": "...",
+        "account_id": "...",
+        "subscription_id": "...",
+        "charge": {
+          "amount": "...",
+          "date": "...",
+          "descriptor": "...",
+          "last4": "...",
+          "transaction_id": "..."
+        },
+        "customer_claim": "...",
+        "desired_outcome": "...",
+        "checks_with_results": ["..."],
+        "ruled_out_branches": ["..."],
+        "likely_cause": "...",
+        "confidence": "low|medium|high",
+        "risk_urgency": "...",
+        "next_step": "...",
+        "what_not_to_promise": "..."
+      },
+      "human_to_engineering": {
+        "account_id": "...",
+        "subscription_id": "...",
+        "charges": [],
+        "system_discrepancy": "...",
+        "support_ruled_out": ["..."],
+        "evidence_handles": ["..."],
+        "impact_urgency": "...",
+        "specific_ask": "..."
+      }
+    }"""
 
 
 PROVIDER_MODELS = {

@@ -356,6 +356,34 @@ def test_realtime_export_excludes_ground_truth_internals(tmp_path) -> None:
     assert "misleading_evidence" not in fixture_text
 
 
+def test_realtime_export_b2c_carries_expected_handoff(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="b2c_subscription_billing", seed=456, use_llm=False, profile="hard")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "", cases_dir=cases_dir)
+
+    export_realtime_support(cases_dir=cases_dir, export_dir=export_dir)
+
+    fixture = json.loads((export_dir / "realtime_support" / f"{case['case_id']}.json").read_text())
+    assert fixture["scenario"] == "b2c_subscription_billing"
+    assert fixture["expected_handoff"] == case["ground_truth"]["expected_handoff"]
+    support_text = " ".join(
+        [
+            fixture.get("safe_customer_summary", ""),
+            fixture.get("evidence_summary", ""),
+            fixture.get("next_best_action", ""),
+            fixture.get("handoff_summary", ""),
+            fixture.get("next_owner", ""),
+            *[event.get("description", "") for event in fixture["context_events"]],
+            *[event.get("next_check", "") for event in fixture["context_events"]],
+        ]
+    ).lower()
+    for banned in ["workspace", "scim", "migration", "customer admin", "implementation owner", "revops"]:
+        assert banned not in support_text
+
+
 def test_realtime_export_manifest(tmp_path) -> None:
     cases_dir = tmp_path / "cases"
     export_dir = tmp_path / "exports"

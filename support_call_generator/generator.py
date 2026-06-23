@@ -9,6 +9,7 @@ from uuid import uuid4
 from support_call_generator.context import build_context_events
 from support_call_generator.expected_state import derive_expected_state
 from support_call_generator.fallback import build_offline_payload
+from support_call_generator.handoff import ensure_expected_handoff
 from support_call_generator.leakage import assess_leakage
 from support_call_generator.llm import generate_with_llm
 from support_call_generator.metadata import build_consumer_summary, build_exposure_marker
@@ -86,7 +87,7 @@ def _generate_llm_case(
     for _ in range(max(1, max_attempts)):
         try:
             payload = generate_with_llm(spec, model=model_name)
-            _validate_payload_shape(payload)
+            _validate_payload_shape(payload, spec)
             case = _build_case(case_id, spec, payload, model_name, "llm", seed)
             return _validate_and_attach_leakage(case)
         except Exception as exc:
@@ -110,7 +111,7 @@ def _validate_and_attach_leakage(case: dict[str, Any]) -> dict[str, Any]:
     return case
 
 
-def _validate_payload_shape(payload: dict[str, Any]) -> None:
+def _validate_payload_shape(payload: dict[str, Any], spec: dict[str, Any]) -> None:
     if not isinstance(payload, dict):
         raise ValueError("payload is not an object")
 
@@ -129,6 +130,8 @@ def _validate_payload_shape(payload: dict[str, Any]) -> None:
     missing_truth = REQUIRED_LLM_TRUTH_KEYS - set(ground_truth)
     if missing_truth:
         raise ValueError("payload ground_truth is incomplete")
+    if spec.get("scenario_type") == "b2c_subscription_billing" and "expected_handoff" not in ground_truth:
+        raise ValueError("payload ground_truth is missing expected_handoff")
 
     timeline = payload.get("expected_timeline")
     if not isinstance(timeline, list) or not timeline:
@@ -145,6 +148,7 @@ def _build_case(
     generation_mode: str,
     seed: int,
 ) -> dict[str, Any]:
+    ensure_expected_handoff(spec, payload["ground_truth"])
     turns = payload["transcript"].get("turns", [])
     context_events = payload.get("context_events") or build_context_events(spec, len(turns))
     expected_by_turn = derive_expected_state(

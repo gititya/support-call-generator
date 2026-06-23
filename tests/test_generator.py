@@ -151,3 +151,86 @@ def test_package_public_api_and_console_script() -> None:
 
     pyproject = tomllib.loads(open("pyproject.toml", encoding="utf-8").read())
     assert pyproject["project"]["scripts"]["support-call-generator"] == "support_call_generator.cli:main"
+
+
+def test_b2c_subscription_billing_generates_expected_handoff() -> None:
+    case = generate_call(scenario_type="b2c_subscription_billing", seed=123, use_llm=False, profile="hard")
+    result = validate_case(case)
+    assert result.ok, result.errors
+    assert case["scenario_spec"]["scenario_type"] == "b2c_subscription_billing"
+
+    handoff = case["ground_truth"]["expected_handoff"]
+    ai_to_human = handoff["ai_to_human"]
+    assert ai_to_human["customer_account_identity"]
+    assert ai_to_human["customer_claim"]
+    assert ai_to_human["desired_outcome"]
+    assert ai_to_human["checks_with_results"]
+    assert ai_to_human["ruled_out_branches"]
+    assert ai_to_human["likely_cause"]
+    assert ai_to_human["confidence"] in {"low", "medium", "high"}
+    assert ai_to_human["risk_urgency"]
+    assert ai_to_human["next_step"]
+    assert ai_to_human["what_not_to_promise"]
+    assert {"amount", "date", "last4", "descriptor", "transaction_id"} <= set(ai_to_human["charge"])
+
+
+def test_b2c_subscription_billing_uses_b2c_language_and_sources() -> None:
+    case = generate_call(scenario_type="b2c_subscription_billing", seed=456, use_llm=False, profile="hard")
+    allowed_sources = {
+        "billing_system",
+        "payment_processor",
+        "subscription_service",
+        "refund_ledger",
+        "identity_verification",
+        "card_network_dunning",
+    }
+    assert {event["source"] for event in case["context_events"]} <= allowed_sources
+
+    text = json.dumps(
+        {
+            "persona": case["scenario_spec"]["customer_persona"],
+            "policy": case["scenario_spec"]["product_policy"],
+            "transcript": case["transcript"],
+        }
+    ).lower()
+    for banned in ["workspace", "scim", "migration", "revops", "implementation owner", "customer admin"]:
+        assert banned not in text
+
+
+def test_b2c_fraud_case_routes_without_confirming_fraud() -> None:
+    case = _generate_b2c_root_case("fraud")
+    handoff = case["ground_truth"]["expected_handoff"]["ai_to_human"]
+    assert handoff["likely_cause"] == "unexplained / fraud-flagged"
+    assert "fraud" in handoff["next_step"].lower()
+    assert "do not confirm fraud" in handoff["what_not_to_promise"].lower()
+
+
+def test_b2c_exports_keep_expected_handoff_out_of_transcript_bundles(tmp_path) -> None:
+    cases_dir = tmp_path / "cases"
+    export_dir = tmp_path / "exports"
+
+    case = generate_call(scenario_type="b2c_subscription_billing", seed=789, use_llm=False, profile="hard")
+    save_case(case, cases_dir=cases_dir)
+    update_review(case["case_id"], "accepted", "usable", cases_dir=cases_dir)
+
+    export_reviewed(cases_dir=cases_dir, export_dir=export_dir, bundle="transcripts_only")
+    transcript_text = (export_dir / "transcripts" / f"{case['case_id']}.json").read_text()
+    manifest_text = (export_dir / "manifest.json").read_text()
+    assert "expected_handoff" not in transcript_text
+    assert "expected_handoff" not in manifest_text
+    assert "ground_truth" not in transcript_text
+    assert "ground_truth" not in manifest_text
+
+    export_reviewed(cases_dir=cases_dir, export_dir=export_dir, bundle="review_pack")
+    review_manifest_text = (export_dir / "manifest.json").read_text()
+    assert "expected_handoff" not in review_manifest_text
+    assert not (export_dir / "ground_truth").exists()
+
+
+def _generate_b2c_root_case(root_text: str) -> dict:
+    for seed in range(1, 1000):
+        case = generate_call(scenario_type="b2c_subscription_billing", seed=seed, use_llm=False, profile="hard")
+        root = case["ground_truth"]["actual_root_cause"].lower()
+        if root_text in root:
+            return case
+    raise AssertionError(f"could not generate b2c root case containing {root_text!r}")
