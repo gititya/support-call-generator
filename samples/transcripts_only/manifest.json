@@ -1,0 +1,30 @@
+{
+  "boundary": "Transcript-only manifest for copilot/main-app consumption. Hidden ground truth is intentionally excluded.",
+  "bundle": "transcripts_only",
+  "case_count": 2,
+  "cases": [
+    {
+      "case_id": "call_1f9487c459",
+      "difficulty": "hard",
+      "leakage_status": "PASS",
+      "resolution_type": "resolved",
+      "scenario_type": "onboarding_migration",
+      "status": "draft",
+      "transcript_json": "transcripts/call_1f9487c459.json",
+      "transcript_markdown": "transcripts/call_1f9487c459.md"
+    },
+    {
+      "case_id": "call_e4d690a568",
+      "difficulty": "hard",
+      "leakage_status": "PASS",
+      "resolution_type": "probable_cause",
+      "scenario_type": "permissions_access",
+      "status": "draft",
+      "transcript_json": "transcripts/call_e4d690a568.json",
+      "transcript_markdown": "transcripts/call_e4d690a568.md"
+    }
+  ],
+  "generated_at": "2026-06-20T09:01:17.061479+00:00",
+  "schema_version": 1,
+  "status_filter": "all"
+}

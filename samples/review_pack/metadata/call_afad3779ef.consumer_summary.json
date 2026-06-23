@@ -1,0 +1,9 @@
+{
+  "agent_quality": "good",
+  "customer_mood": "anxious",
+  "customer_role": "Implementation Manager",
+  "difficulty": "hard",
+  "resolution_type": "probable_cause",
+  "scenario_type": "permissions_access",
+  "summary": "Synthetic support interaction with misleading evidence, abandoned paths, conflicting observations, a hypothesis reversal, and a late root-cause reveal."
+}

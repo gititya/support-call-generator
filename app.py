@@ -8,7 +8,10 @@ import subprocess
 
 import streamlit as st
 
+from support_call_generator.export_realtime import export_realtime_support
+from support_call_generator.exporter import EXPORT_BUNDLE_DESCRIPTIONS, export_reviewed
 from support_call_generator.generator import generate_call
+from support_call_generator.profiles import PROFILE_NAMES
 from support_call_generator.scenarios import SCENARIO_TYPES
 from support_call_generator.storage import (
     CASES_DIR,
@@ -33,11 +36,10 @@ def default_cases_dir() -> Path:
     return CASES_DIR
 
 
-def openai_key_from_keychain() -> str | None:
-    if os.getenv("OPENAI_API_KEY"):
-        return os.getenv("OPENAI_API_KEY")
-
-    for service in ("OpenAI:voice",):
+def _key_from_keychain(env_var: str, keychain_services: list[str]) -> str | None:
+    if os.getenv(env_var):
+        return os.getenv(env_var)
+    for service in keychain_services:
         result = subprocess.run(
             ["security", "find-generic-password", "-a", "aditya", "-s", service, "-w"],
             capture_output=True,
@@ -49,15 +51,27 @@ def openai_key_from_keychain() -> str | None:
     return None
 
 
+def openai_key_from_keychain() -> str | None:
+    return _key_from_keychain("OPENAI_API_KEY", ["OpenAI:voice"])
+
+
+def anthropic_key_from_keychain() -> str | None:
+    return _key_from_keychain("ANTHROPIC_API_KEY", ["Anthropic:api"])
+
+
 if "cases_dir" not in st.session_state:
     st.session_state["cases_dir"] = str(default_cases_dir())
 if "pending_cases_dir" in st.session_state:
     st.session_state["cases_dir"] = st.session_state.pop("pending_cases_dir")
+if "last_export" not in st.session_state:
+    st.session_state["last_export"] = None
 
 cases_dir = Path(st.sidebar.text_input("Cases directory", key="cases_dir"))
 
 st.sidebar.subheader("Generate")
 generation_scenario = st.sidebar.selectbox("New call scenario", ["random", *SCENARIO_TYPES])
+generation_profile = st.sidebar.selectbox("Difficulty profile", ["none", *PROFILE_NAMES])
+generation_count = st.sidebar.number_input("Calls to generate", min_value=1, max_value=50, value=1, step=1)
 
 if st.sidebar.button("Start fresh run", use_container_width=True):
     fresh_dir = Path("data/llm_runs") / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -65,18 +79,82 @@ if st.sidebar.button("Start fresh run", use_container_width=True):
     st.session_state["pending_cases_dir"] = str(fresh_dir)
     st.rerun()
 
-if st.sidebar.button("Generate call", type="primary", use_container_width=True):
-    scenario = generation_scenario if generation_scenario != "random" else random.choice(SCENARIO_TYPES)
-    openai_key = openai_key_from_keychain()
-    if not openai_key:
-        st.sidebar.error("OpenAI key unavailable. Expected Keychain service: OpenAI:voice.")
-    else:
-        os.environ["OPENAI_API_KEY"] = openai_key
-        with st.spinner("Generating LLM call..."):
-            case = generate_call(scenario_type=scenario, use_llm=True)
-            save_case(case, cases_dir=cases_dir)
-        st.toast(f"Generated {case['case_id']}")
+generation_provider = st.sidebar.selectbox("Generation mode", ["offline", "openai", "anthropic"])
+
+if st.sidebar.button("Generate", type="primary", use_container_width=True):
+    api_key = "offline"
+    if generation_provider == "offline":
+        os.environ.pop("SCG_PROVIDER", None)
+    elif generation_provider == "anthropic":
+        api_key = anthropic_key_from_keychain()
+        if not api_key:
+            st.sidebar.error("Anthropic key unavailable. Set ANTHROPIC_API_KEY or add Keychain service: Anthropic:api.")
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = api_key
+            os.environ["SCG_PROVIDER"] = "anthropic"
+    elif generation_provider == "openai":
+        api_key = openai_key_from_keychain()
+        if not api_key:
+            st.sidebar.error("OpenAI key unavailable. Expected Keychain service: OpenAI:voice.")
+        else:
+            os.environ["OPENAI_API_KEY"] = api_key
+            os.environ["SCG_PROVIDER"] = "openai"
+    if api_key:
+        selected_profile = generation_profile if generation_profile != "none" else None
+        generated = []
+        with st.spinner(f"Generating {generation_count} with {generation_provider}..."):
+            for _ in range(int(generation_count)):
+                scenario = generation_scenario if generation_scenario != "random" else random.choice(SCENARIO_TYPES)
+                case = generate_call(
+                    scenario_type=scenario,
+                    use_llm=False if generation_provider == "offline" else True,
+                    profile=selected_profile,
+                )
+                save_case(case, cases_dir=cases_dir)
+                generated.append(case["case_id"])
+        st.toast(f"Generated {len(generated)} call{'s' if len(generated) != 1 else ''}")
         st.rerun()
+
+st.sidebar.divider()
+st.sidebar.subheader("Export")
+bundle_options = {
+    "Review pack": "review_pack",
+    "Transcripts only": "transcripts_only",
+    "Eval pack": "eval_pack",
+    "Support-process fixture": "process_fixture",
+}
+export_bundle = st.sidebar.selectbox(
+    "Bundle",
+    list(bundle_options),
+    help="Choose how much data the consuming repo needs.",
+)
+export_bundle_value = bundle_options[export_bundle]
+bundle_help = {
+    **EXPORT_BUNDLE_DESCRIPTIONS,
+    "process_fixture": "Transcript plus context events, expected state by turn, next checks, handoff fields, and outcome fields.",
+}
+st.sidebar.caption(bundle_help[export_bundle_value])
+export_status = st.sidebar.selectbox("Export status", ["accepted", "all", "draft", "rejected"])
+export_dir = Path(st.sidebar.text_input("Export directory", value="exports/latest"))
+if st.sidebar.button("Export bundle", use_container_width=True):
+    if export_bundle_value == "process_fixture":
+        result = export_realtime_support(
+            cases_dir=cases_dir,
+            export_dir=export_dir,
+            status=export_status,
+            collection_name="process_fixture",
+            envelope_name="process_fixture_envelope.json",
+        )
+    else:
+        result = export_reviewed(cases_dir=cases_dir, export_dir=export_dir, status=export_status, bundle=export_bundle_value)
+    st.session_state["last_export"] = {
+        "bundle_label": export_bundle,
+        "bundle": export_bundle_value,
+        "count": result["exported"],
+        "path": str(export_dir),
+        "description": bundle_help[export_bundle_value],
+    }
+    st.sidebar.success(f"Exported {result['exported']} cases to {export_dir}")
 
 st.sidebar.divider()
 st.sidebar.subheader("Browse generated calls")
@@ -102,6 +180,15 @@ st.sidebar.metric("Generated calls", len(cases))
 st.sidebar.caption(f"{len(filtered)} calls match the current filters")
 
 st.caption(f"Viewing generated calls from `{cases_dir}`")
+
+if st.session_state["last_export"]:
+    last_export = st.session_state["last_export"]
+    with st.expander("Latest export", expanded=True):
+        st.write(f"**Bundle:** {last_export['bundle_label']}")
+        st.write(f"**Cases:** {last_export['count']}")
+        st.write(f"**Output folder:** `{last_export['path']}`")
+        st.caption(last_export["description"])
+        st.code(last_export["path"], language="text")
 
 if not filtered:
     if cases:
@@ -146,13 +233,23 @@ has_current_metadata = "difficulty_metadata" in truth and leakage.get("status") 
 
 left, right = st.columns([0.65, 0.35], gap="large")
 
+intent_tags = case.get("intent_tags", [])
+context_events = case.get("context_events", [])
+expected_by_turn = case.get("expected_by_turn", [])
+profile_info = spec.get("profile", {})
+
 with left:
     st.subheader(case_id)
-    st.caption(
-        f"{spec['scenario_type']} · {spec['customer_persona']['mood']} customer · "
-        f"{spec['customer_persona']['technical_skill']} technical skill · "
-        f"{spec['agent_quality']} agent · {review['status']}"
-    )
+    caption_parts = [
+        f"{spec['scenario_type']} · {spec['customer_persona']['mood']} customer",
+        f"{spec['customer_persona']['technical_skill']} technical skill",
+        f"{spec['agent_quality']} agent · {review['status']}",
+    ]
+    if profile_info:
+        caption_parts.insert(0, f"**{profile_info.get('name', '')}** profile")
+    st.caption(" · ".join(caption_parts))
+    if intent_tags:
+        st.markdown(" ".join(f"`{tag}`" for tag in intent_tags))
     badge_cols = st.columns(4)
     badge_cols[0].metric("Difficulty", difficulty_metadata.get("difficulty", "unknown"))
     badge_cols[1].metric("Ambiguity", difficulty_metadata.get("ambiguity_score", "n/a"))
@@ -209,6 +306,40 @@ with right:
             st.write("Leakage warnings")
             for item in leakage.get("warnings", []):
                 st.write(f"- {item}")
+    if context_events:
+        with st.expander(f"Context Events ({len(context_events)})", expanded=False):
+            for event in context_events:
+                icon = ""
+                if event.get("reveals_final_cause"):
+                    icon = " [REVEALS CAUSE]"
+                elif event.get("is_irrelevant"):
+                    icon = " [IRRELEVANT]"
+                elif event.get("is_conflicting"):
+                    icon = " [CONFLICTING]"
+                st.markdown(f"**After turn {event['after_turn']}** — `{event['source']}`{icon}")
+                st.write(event["description"])
+                if event.get("facts"):
+                    st.caption("Facts: " + ", ".join(event["facts"]))
+                st.divider()
+
+    if expected_by_turn:
+        with st.expander(f"Expected State ({len(expected_by_turn)} turns)", expanded=False):
+            for state in expected_by_turn:
+                cause_badge = " **[final cause allowed]**" if state.get("final_cause_allowed") else ""
+                st.markdown(f"**After turn {state['after_turn']}**{cause_badge}")
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if state.get("facts"):
+                        st.caption("Facts: " + ", ".join(state["facts"]))
+                    if state.get("unknowns"):
+                        st.caption("Unknowns: " + ", ".join(state["unknowns"]))
+                with col_b:
+                    if state.get("candidate_branches"):
+                        st.caption("Candidates: " + ", ".join(state["candidate_branches"]))
+                    if state.get("ruled_out_branches"):
+                        st.caption("Ruled out: " + ", ".join(state["ruled_out_branches"]))
+                st.divider()
+
     if show_truth:
         st.subheader("Ground Truth")
         st.json(truth)

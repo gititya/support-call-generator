@@ -4,6 +4,7 @@ import json
 import os
 from typing import Any
 
+from support_call_generator.context import CONTEXT_SOURCES
 from support_call_generator.doctrines import render_doctrines
 
 
@@ -14,6 +15,35 @@ Keep hidden ground truth consistent with the scenario scaffold.
 The simulator doctrines are mandatory and override natural dialogue instincts."""
 
 
+def _turn_range_rule(spec: dict[str, Any]) -> str:
+    profile = spec.get("profile")
+    if profile:
+        lo, hi = profile["turn_range"]
+        return f"- {lo} to {hi} turns (from difficulty profile '{profile['name']}')."
+    return "- 16 to 28 turns."
+
+
+def _context_event_rules(spec: dict[str, Any]) -> str:
+    scenario_type = spec["scenario_type"]
+    sources = CONTEXT_SOURCES.get(scenario_type, ["admin_panel", "audit_log"])
+    source_list = ", ".join(sources)
+
+    lines = [
+        "Context event rules:",
+        f"- Sources for this scenario type: {source_list}.",
+        "- Each context event represents operational evidence that arrives BETWEEN transcript turns (after_turn = the turn after which this evidence surfaces).",
+        "- Events are NOT dialogue — they are backend signals an agent would see in a dashboard, log, or system notification.",
+        "- Timing: distribute events across the transcript. No events before turn 2.",
+        "- Exactly one event must have reveals_final_cause=true, and it must appear in the final third of the transcript.",
+        "- Events with reveals_final_cause=false must NOT contain the root cause or make it obvious.",
+        "- Include irrelevant events (is_irrelevant=true) that look plausible but are unrelated — noise the agent must filter.",
+        "- Include conflicting events (is_conflicting=true) that contradict the current leading hypothesis.",
+        "- facts should be key:value strings like 'role_modified:6_months_ago' or 'evidence:sso_cert_renewal'.",
+        "- resolved_unknowns, ruled_out_branches, candidate_branches are string arrays that track how this event changes the investigation state.",
+    ]
+    return "\n".join(lines)
+
+
 def build_generation_prompt(spec: dict[str, Any]) -> str:
     return f"""
 Create one realistic support-call case from this scaffold.
@@ -22,7 +52,7 @@ Mandatory simulator doctrines:
 {render_doctrines()}
 
 Rules:
-- 16 to 28 turns.
+{_turn_range_rule(spec)}
 - Speakers must be "customer" and "agent".
 - Stress-test operational reasoning, not simple root-cause identification.
 - Follow the scenario difficulty, scores, resolution type, and outcome.
@@ -40,6 +70,8 @@ Rules:
 - Do not let the agent intuit the answer without evidence.
 - Do not make the troubleshooting sequence perfect; include at least one wrong-but-plausible branch that gets abandoned.
 - Keep product details generic B2B SaaS.
+
+{_context_event_rules(spec)}
 
 Return JSON with exactly:
 {{
@@ -81,6 +113,20 @@ Return JSON with exactly:
     "best_diagnostic_questions": ["..."],
     "final_outcome": "..."
   }},
+  "context_events": [
+    {{
+      "after_turn": 5,
+      "source": "admin_panel",
+      "description": "Human-readable description of what this operational evidence shows.",
+      "facts": ["key:value"],
+      "resolved_unknowns": [],
+      "ruled_out_branches": [],
+      "candidate_branches": [],
+      "is_irrelevant": false,
+      "is_conflicting": false,
+      "reveals_final_cause": false
+    }}
+  ],
   "expected_timeline": [
     {{
       "turn": 1,
@@ -105,6 +151,19 @@ Scenario scaffold:
 """.strip()
 
 
+PROVIDER_MODELS = {
+    "openai": "gpt-5.4-mini",
+    "anthropic": "claude-sonnet-4-6",
+}
+
+
+def generate_with_llm(spec: dict[str, Any], model: str | None = None) -> dict[str, Any]:
+    provider = os.getenv("SCG_PROVIDER", "openai")
+    if provider == "anthropic":
+        return generate_with_anthropic(spec, model=model)
+    return generate_with_openai(spec, model=model)
+
+
 def generate_with_openai(spec: dict[str, Any], model: str | None = None) -> dict[str, Any]:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -117,7 +176,7 @@ def generate_with_openai(spec: dict[str, Any], model: str | None = None) -> dict
 
     client = OpenAI(api_key=api_key)
     response = client.responses.create(
-        model=model or os.getenv("SCG_MODEL", "gpt-5.4-mini"),
+        model=model or os.getenv("SCG_MODEL", PROVIDER_MODELS["openai"]),
         input=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": build_generation_prompt(spec)},
@@ -128,6 +187,31 @@ def generate_with_openai(spec: dict[str, Any], model: str | None = None) -> dict
     text = getattr(response, "output_text", None)
     if not text:
         text = _extract_response_text(response)
+
+    return json.loads(text)
+
+
+def generate_with_anthropic(spec: dict[str, Any], model: str | None = None) -> dict[str, Any]:
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY is not set")
+
+    try:
+        import anthropic
+    except ImportError as exc:
+        raise RuntimeError("Install the Anthropic dependency with: pip install -e '.[anthropic]'") from exc
+
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model=model or os.getenv("SCG_MODEL", PROVIDER_MODELS["anthropic"]),
+        max_tokens=16384,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": build_generation_prompt(spec)}],
+    )
+
+    text = message.content[0].text
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0]
 
     return json.loads(text)
 

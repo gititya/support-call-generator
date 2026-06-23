@@ -1,0 +1,87 @@
+{
+  "abandoned_troubleshooting_paths": [
+    "The agent spends several turns checking partial data import before abandoning it.",
+    "The customer suggests workspace storage limit because it happened in a previous incident, but it does not fit the current evidence."
+  ],
+  "actual_root_cause": "Legacy project owners were mapped to viewers during import.",
+  "best_diagnostic_questions": [
+    "Which users or records are affected, and what do they have in common?",
+    "What changed immediately before the issue started?",
+    "Can we compare one working example with one blocked example?",
+    "Is this failing for a role, group, workspace, or integration boundary?",
+    "What evidence would disprove the current leading hypothesis?"
+  ],
+  "confidence": 0.92,
+  "conflicting_observations": [
+    "migration completed with no fatal errors, but owners cannot edit migrated records.",
+    "migration logs show fallback role mapping, while another affected example points away from the same branch."
+  ],
+  "difficulty_metadata": {
+    "ambiguity_score": 3,
+    "difficulty": "hard",
+    "leakage_score": 4,
+    "realism_score": 4
+  },
+  "doctrine_adherence": {
+    "information_asymmetry": "Customer, agent, and admin details arrive at different times.",
+    "leakage_controls": [
+      "The customer does not state the hidden root cause directly.",
+      "Late facts explain the answer only after false leads are weakened.",
+      "The agent abandons plausible paths before confirming the answer."
+    ],
+    "non_perfect_troubleshooting": "The agent tests two plausible wrong paths before the correct operational boundary becomes clear.",
+    "uncertainty_pressure": "The call keeps multiple explanations alive before narrowing."
+  },
+  "escalation_timeline": [
+    {
+      "moment": "customer has an onboarding review with executives tomorrow",
+      "turn": 7,
+      "type": "escalation"
+    },
+    {
+      "moment": "agent nearly overcommits to a weak path",
+      "turn": 10,
+      "type": "missed_opportunity"
+    }
+  ],
+  "escalation_trigger": "customer has an onboarding review with executives tomorrow",
+  "false_leads": [
+    "partial data import",
+    "workspace storage limit"
+  ],
+  "final_outcome": "agent finds custom legacy role mapping error and schedules corrected reimport",
+  "hypothesis_reversals": [
+    "The likely explanation shifts away from partial data import after a delayed fact appears.",
+    "A hypothesis that looked unlikely becomes plausible only after this late fact: migration logs show fallback role mapping."
+  ],
+  "issue_path": [
+    "customer says migrated projects are visible but not editable",
+    "agent checks migration completion",
+    "role mapping table is reviewed",
+    "owner roles are remapped and reimported"
+  ],
+  "key_evidence": [
+    "projects are visible",
+    "a custom legacy owner role existed"
+  ],
+  "late_reveal_facts": [
+    "migration logs show fallback role mapping",
+    "a custom legacy owner role existed"
+  ],
+  "misleading_evidence": [
+    "An early symptom seems to support partial data import, but later evidence weakens it.",
+    "A customer-provided detail sounds decisive at first, but turns out to describe a separate condition: owners cannot edit migrated records."
+  ],
+  "resolution_type": "resolved",
+  "root_cause_category": "onboarding_migration",
+  "why_difficult": [
+    "early evidence supports the wrong branch",
+    "customer corrects the timeline after the agent has already tested a dead end",
+    "the late fact changes the operational boundary"
+  ],
+  "wrong_paths": [
+    "partial data import",
+    "browser permissions prompt",
+    "workspace storage limit"
+  ]
+}

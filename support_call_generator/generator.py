@@ -6,11 +6,15 @@ import random
 from typing import Any
 from uuid import uuid4
 
+from support_call_generator.context import build_context_events
+from support_call_generator.expected_state import derive_expected_state
 from support_call_generator.fallback import build_offline_payload
 from support_call_generator.leakage import assess_leakage
-from support_call_generator.llm import generate_with_openai
+from support_call_generator.llm import generate_with_llm
+from support_call_generator.metadata import build_consumer_summary, build_exposure_marker
 from support_call_generator.render import render_transcript_markdown
 from support_call_generator.scenarios import SCENARIO_TYPES, build_scenario_spec
+from support_call_generator.tags import derive_intent_tags
 from support_call_generator.validator import validate_case
 
 
@@ -45,16 +49,21 @@ def generate_call(
     use_llm: bool | None = None,
     max_attempts: int = 3,
     root_cause_counts: dict[str, int] | None = None,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     seed = seed if seed is not None else random.randint(1, 999_999_999)
     rng = random.Random(seed)
     scenario_type = scenario_type or rng.choice(SCENARIO_TYPES)
     case_id = case_id or f"call_{uuid4().hex[:10]}"
 
-    spec = build_scenario_spec(scenario_type, seed, root_cause_counts=root_cause_counts)
-    model_name = os.getenv("SCG_MODEL", "gpt-5.4-mini")
+    spec = build_scenario_spec(scenario_type, seed, root_cause_counts=root_cause_counts, profile=profile)
 
-    should_use_llm = bool(os.getenv("OPENAI_API_KEY")) if use_llm is None else use_llm
+    from support_call_generator.llm import PROVIDER_MODELS
+    provider = os.getenv("SCG_PROVIDER", "openai")
+    model_name = os.getenv("SCG_MODEL", PROVIDER_MODELS.get(provider, "gpt-5.4-mini"))
+
+    has_key = bool(os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY"))
+    should_use_llm = has_key if use_llm is None else use_llm
     if should_use_llm:
         return _generate_llm_case(case_id, spec, model_name, seed, max_attempts)
     else:
@@ -76,7 +85,7 @@ def _generate_llm_case(
     errors: list[str] = []
     for _ in range(max(1, max_attempts)):
         try:
-            payload = generate_with_openai(spec, model=model_name)
+            payload = generate_with_llm(spec, model=model_name)
             _validate_payload_shape(payload)
             case = _build_case(case_id, spec, payload, model_name, "llm", seed)
             return _validate_and_attach_leakage(case)
@@ -84,7 +93,7 @@ def _generate_llm_case(
             if exc.__class__.__name__ == "AuthenticationError":
                 raise
             errors.append(exc.__class__.__name__)
-    raise ValueError("OpenAI generation failed validation after retries: " + ", ".join(errors))
+    raise ValueError("LLM generation failed validation after retries: " + ", ".join(errors))
 
 
 def _validate_and_attach_leakage(case: dict[str, Any]) -> dict[str, Any]:
@@ -136,13 +145,23 @@ def _build_case(
     generation_mode: str,
     seed: int,
 ) -> dict[str, Any]:
-    return {
+    turns = payload["transcript"].get("turns", [])
+    context_events = payload.get("context_events") or build_context_events(spec, len(turns))
+    expected_by_turn = derive_expected_state(
+        turns, context_events, payload["ground_truth"], payload["expected_timeline"],
+    )
+
+    case = {
         "case_id": case_id,
         "scenario_spec": spec,
         "transcript": payload["transcript"],
         "transcript_md": render_transcript_markdown(case_id, spec, payload["transcript"]),
         "ground_truth": payload["ground_truth"],
         "expected_timeline": payload["expected_timeline"],
+        "context_events": context_events,
+        "expected_by_turn": expected_by_turn,
+        "consumer_summary": build_consumer_summary(spec, payload["transcript"]),
+        "exposure_marker": build_exposure_marker(spec, payload["transcript"]),
         "leakage_report": payload.get("leakage_report", {"status": "UNKNOWN", "failures": [], "warnings": []}),
         "review": {
             "status": "draft",
@@ -154,3 +173,5 @@ def _build_case(
             "regeneration_count": 0,
         },
     }
+    case["intent_tags"] = derive_intent_tags(case)
+    return case

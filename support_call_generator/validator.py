@@ -12,6 +12,8 @@ REQUIRED_CASE_KEYS = {
     "transcript_md",
     "ground_truth",
     "expected_timeline",
+    "consumer_summary",
+    "exposure_marker",
     "review",
 }
 
@@ -123,7 +125,87 @@ def validate_case(case: dict[str, Any]) -> ValidationResult:
         if len(hypotheses) < 3:
             errors.append("expected timeline must track at least three competing hypotheses")
 
+    context_events = case.get("context_events", [])
+    if context_events:
+        _validate_context_events(context_events, len(turns), errors)
+
+    expected_by_turn = case.get("expected_by_turn", [])
+    if expected_by_turn:
+        _validate_expected_state(expected_by_turn, len(turns), errors)
+
+    summary = case.get("consumer_summary", {})
+    if not isinstance(summary, dict) or not summary.get("summary"):
+        errors.append("consumer_summary must include summary")
+
+    exposure = case.get("exposure_marker", {})
+    if not isinstance(exposure, dict) or exposure.get("synthetic_only") is not True:
+        errors.append("exposure_marker must identify synthetic-only data")
+    if exposure.get("sensitivity_level") not in {"low", "medium", "high"}:
+        errors.append("exposure_marker sensitivity_level is invalid")
+
     return ValidationResult(ok=not errors, errors=errors)
+
+
+def _validate_context_events(events: list, turn_count: int, errors: list[str]) -> None:
+    final_third_start = max(1, int(turn_count * 2 / 3))
+    reveal_count = 0
+
+    for i, event in enumerate(events):
+        if not isinstance(event, dict):
+            errors.append(f"context event {i} is not an object")
+            continue
+
+        after_turn = event.get("after_turn")
+        if not isinstance(after_turn, int) or after_turn < 1 or after_turn > turn_count:
+            errors.append(f"context event {i} has invalid after_turn")
+
+        if not event.get("source"):
+            errors.append(f"context event {i} is missing source")
+
+        if not event.get("description"):
+            errors.append(f"context event {i} is missing description")
+
+        if event.get("reveals_final_cause"):
+            reveal_count += 1
+            if isinstance(after_turn, int) and after_turn < final_third_start:
+                errors.append(f"context event {i} reveals final cause before final third (turn {after_turn} < {final_third_start})")
+
+    if reveal_count > 1:
+        errors.append(f"multiple context events ({reveal_count}) marked as reveals_final_cause")
+
+
+def _validate_expected_state(states: list, turn_count: int, errors: list[str]) -> None:
+    if len(states) != turn_count:
+        errors.append(f"expected_by_turn has {len(states)} entries but transcript has {turn_count} turns")
+        return
+
+    final_third_start = max(1, int(turn_count * 2 / 3))
+    prev_facts: set[str] = set()
+    prev_ruled_out: set[str] = set()
+
+    for i, state in enumerate(states):
+        if not isinstance(state, dict):
+            errors.append(f"expected_by_turn entry {i} is not an object")
+            continue
+
+        turn = state.get("after_turn")
+        if turn != i + 1:
+            errors.append(f"expected_by_turn entry {i} has wrong after_turn: {turn}")
+
+        current_facts = set(state.get("facts", []))
+        if not prev_facts.issubset(current_facts):
+            lost = prev_facts - current_facts
+            errors.append(f"expected_by_turn lost facts at turn {turn}: {lost}")
+        prev_facts = current_facts
+
+        current_ruled = set(state.get("ruled_out_branches", []))
+        if not prev_ruled_out.issubset(current_ruled):
+            lost = prev_ruled_out - current_ruled
+            errors.append(f"expected_by_turn lost ruled_out_branches at turn {turn}: {lost}")
+        prev_ruled_out = current_ruled
+
+        if state.get("final_cause_allowed") and turn < final_third_start:
+            errors.append(f"final_cause_allowed is true before final third (turn {turn})")
 
 
 def _normalized(text: str) -> str:

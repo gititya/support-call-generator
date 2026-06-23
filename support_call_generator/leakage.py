@@ -42,6 +42,10 @@ def assess_leakage(case: dict[str, Any]) -> dict[str, Any]:
     if len(truth.get("false_leads", [])) < 2:
         fail.append("fewer than two false leads")
 
+    context_events = case.get("context_events", [])
+    if context_events:
+        _check_context_leakage(context_events, root_cause, final_third_start, fail, warning)
+
     status = "PASS"
     if warning:
         status = "WARNING"
@@ -53,6 +57,36 @@ def assess_leakage(case: dict[str, Any]) -> dict[str, Any]:
         "failures": fail,
         "warnings": warning,
     }
+
+
+def _check_context_leakage(
+    events: list[dict],
+    root_cause: str,
+    final_third_start: int,
+    fail: list[str],
+    warning: list[str],
+) -> None:
+    root_terms = [t for t in _content_terms(root_cause) if len(t) > 4]
+
+    for i, event in enumerate(events):
+        if event.get("reveals_final_cause") and event.get("after_turn", 0) < final_third_start:
+            fail.append(f"context event {i} reveals final cause before final third")
+
+        if event.get("reveals_final_cause") or event.get("is_irrelevant"):
+            continue
+
+        desc = _normalize(event.get("description", ""))
+        fact_text = _normalize(" ".join(event.get("facts", [])))
+        combined = desc + " " + fact_text
+
+        if _normalize(root_cause) in combined:
+            if event.get("after_turn", 0) < final_third_start:
+                fail.append(f"context event {i} contains root cause verbatim before final third")
+
+        if root_terms and event.get("after_turn", 0) < final_third_start:
+            matches = sum(1 for t in root_terms if t in combined)
+            if matches >= max(2, len(root_terms) // 2):
+                warning.append(f"context event {i} may leak too many root-cause terms")
 
 
 def _normalize(text: str) -> str:

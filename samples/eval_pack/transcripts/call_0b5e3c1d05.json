@@ -1,0 +1,85 @@
+{
+  "summary": "Synthetic support interaction with misleading evidence, abandoned paths, conflicting observations, a hypothesis reversal, and a late root-cause reveal.",
+  "turns": [
+    {
+      "speaker": "customer",
+      "text": "I need a fast answer here. customer reports symptoms consistent with more than one access issue.",
+      "turn": 1
+    },
+    {
+      "speaker": "agent",
+      "text": "Okay, I can check a few things with you. When did this first start?",
+      "turn": 2
+    },
+    {
+      "speaker": "customer",
+      "text": "the issue began after a recent operational change",
+      "turn": 3
+    },
+    {
+      "speaker": "agent",
+      "text": "That points me toward browser cache, but I want to keep this tentative. What changed right before the issue started?",
+      "turn": 4
+    },
+    {
+      "speaker": "customer",
+      "text": "The confusing part is this: An early symptom seems to support browser cache, but later evidence weakens it.",
+      "turn": 5
+    },
+    {
+      "speaker": "agent",
+      "text": "Let's test browser cache first. If that fits, we should see the same behavior on a known-good example.",
+      "turn": 6
+    },
+    {
+      "speaker": "customer",
+      "text": "We checked one example and it seemed to fit, but then another example did not. customer reports symptoms consistent with more than one access issue, but at least one comparison case behaves differently.",
+      "turn": 7
+    },
+    {
+      "speaker": "agent",
+      "text": "That weakens browser cache. I am going to abandon that path for now and check expired invitation.",
+      "turn": 8
+    },
+    {
+      "speaker": "customer",
+      "text": "expired invitation happened to us once before, so that sounds plausible, but the symptoms are not exactly the same.",
+      "turn": 9
+    },
+    {
+      "speaker": "agent",
+      "text": "Agreed. expired invitation is possible, but the evidence is mixed. I need a comparison between a working and blocked case.",
+      "turn": 10
+    },
+    {
+      "speaker": "customer",
+      "text": "One working case has the same visible setup. Also, an admin later mentions direct assignment conflict.",
+      "turn": 11
+    },
+    {
+      "speaker": "agent",
+      "text": "That reverses the direction. The visible setup may not be the control point. I want to inspect the shared configuration boundary.",
+      "turn": 12
+    },
+    {
+      "speaker": "customer",
+      "text": "I just got a note from someone else: a working example differs in one hidden configuration detail. customer has a time-sensitive rollout or business deadline and trust is degrading.",
+      "turn": 13
+    },
+    {
+      "speaker": "agent",
+      "text": "That late detail finally makes the actual path coherent. The likely root cause is: The access failure is caused by direct assignment conflict.",
+      "turn": 14
+    },
+    {
+      "speaker": "customer",
+      "text": "So the earlier checks were not wasted, but they were pointing at the wrong control point?",
+      "turn": 15
+    },
+    {
+      "speaker": "agent",
+      "text": "Correct. The earlier paths were plausible but abandoned after conflicting evidence. Final outcome: agent identifies direct assignment conflict as the likely operational cause, but certainty depends on the selected resolution type",
+      "turn": 16
+    }
+  ]
+}

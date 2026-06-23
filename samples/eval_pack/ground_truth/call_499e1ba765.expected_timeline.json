@@ -1,0 +1,57 @@
+[
+  {
+    "confidence": 0.35,
+    "evidence": [
+      "migration completed with no fatal errors"
+    ],
+    "hypothesis": "customer says migrated projects are visible but not editable",
+    "state": "activate",
+    "turn": 1
+  },
+  {
+    "confidence": 0.55,
+    "evidence": [
+      "An early symptom seems to support partial data import, but later evidence weakens it."
+    ],
+    "hypothesis": "partial data import",
+    "state": "strengthen",
+    "turn": 4
+  },
+  {
+    "confidence": 0.15,
+    "evidence": [
+      "migration completed with no fatal errors, but owners cannot edit migrated records."
+    ],
+    "hypothesis": "partial data import",
+    "state": "discard",
+    "turn": 8
+  },
+  {
+    "confidence": 0.3,
+    "evidence": [
+      "comparison case does not fit the second false lead"
+    ],
+    "hypothesis": "workspace storage limit",
+    "state": "weaken",
+    "turn": 10
+  },
+  {
+    "confidence": 0.55,
+    "evidence": [
+      "a custom legacy owner role existed"
+    ],
+    "hypothesis": "Legacy project owners were mapped to viewers during import.",
+    "state": "activate",
+    "turn": 12
+  },
+  {
+    "confidence": 0.9,
+    "evidence": [
+      "migration logs show fallback role mapping",
+      "agent finds custom legacy role mapping error and schedules corrected reimport"
+    ],
+    "hypothesis": "Legacy project owners were mapped to viewers during import.",
+    "state": "confirm",
+    "turn": 14
+  }
+]
