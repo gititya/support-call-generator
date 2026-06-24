@@ -7,6 +7,26 @@ The simulator is intentionally separate from the copilot. The copilot should onl
 Generated calls are designed to stress-test operational reasoning, not simple root-cause identification. Scenarios include misleading evidence, false leads, abandoned troubleshooting paths, hypothesis reversals, conflicting observations, and late root-cause reveals.
 Each call also includes difficulty metadata, resolution type, leakage detection, operational timelines, and "why difficult" notes for manual review.
 
+## Who this is for (it's a dependency, not a product)
+
+Support Call Generator is infrastructure for two downstream eval projects — not a standalone product:
+
+- **`real-time_support_Updated`** (B2B support-process eval) — consumes `support_process_fixture.v1` via `export_realtime.py`: transcript turns, timed context events, expected per-turn support state, and final-cause timing.
+- **Handoff Quality Gate** (B2C) — consumes `b2c_subscription_billing` disputed-charge cases, each carrying an `expected_handoff` answer key (the required, grounded fields a good AI→human handoff must contain).
+
+One proven pipeline is the point, not breadth of packs:
+
+```
+generate b2c_subscription_billing case
+  -> ground_truth.expected_handoff (answer key)
+  -> export-realtime -> support_process_fixture.v1 (+ expected_handoff)
+        |
+        v
+  consumed by real-time_support_Updated / Handoff Quality Gate
+```
+
+**What it is not:** not used by Signal (Signal uses real CFPB data — synthetic complaints would undermine its credibility); not a multi-domain "synthetic support data lab"; not a customer-facing or responding agent. The `Evolving support call_generator.md` doc is a reference wishlist, not a build plan — build only what a real consumer asks for.
+
 ## Setup
 
 ```bash

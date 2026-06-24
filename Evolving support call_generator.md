@@ -1,5 +1,9 @@
 # Support Call Generator - Evolving
 
+> [!NOTE]
+> **Status: REFERENCE WISHLIST — not a build plan.**
+> This is a backlog of ideas derived from consumer projects, not a commitment to build. Build only what a real, existing consumer (`real-time_support_Updated` or the Handoff Quality Gate) actually asks for. Do **not** implement B2C platform packs, a Signal/CFPB export, coaching/escalation packs, or a public API on spec. A generator's scope is infinite; scope discipline is the point.
+
 This documents talks about how the support call generator product, as it exists today, need to be evolved with more features to align and support different Customer Support Projects I'm building. 
 
 These additional features were derived, verbatim, from the actual projects themselves on what would be high value for the respective projects to use or have support call generator be a dependency for. 
